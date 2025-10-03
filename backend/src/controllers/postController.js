@@ -1,6 +1,7 @@
-const Post = require('../models/post');
+const Post = require('../models/Post');
 const { calculatePopularity } = require('../utils/popularity');
 
+// create post
 exports.createPost = async (req, res, next) => {
   try {
     const post = await Post.create({ author: req.user.id, ...req.body });
@@ -10,15 +11,19 @@ exports.createPost = async (req, res, next) => {
   }
 };
 
+// get all posts
 exports.getPosts = async (req, res, next) => {
   try {
-    const posts = await Post.find().populate('author', 'name role profilePic').sort({ createdAt: -1 });
+    const posts = await Post.find()
+      .populate('author', 'name role profilePic')
+      .sort({ createdAt: -1 });
     res.json(posts);
   } catch (err) {
     next(err);
   }
 };
 
+// update post (only author can update)
 exports.updatePost = async (req, res, next) => {
   try {
     const post = await Post.findOneAndUpdate(
@@ -33,6 +38,7 @@ exports.updatePost = async (req, res, next) => {
   }
 };
 
+// delete post (only author can delete)
 exports.deletePost = async (req, res, next) => {
   try {
     const post = await Post.findOneAndDelete({ _id: req.params.id, author: req.user.id });

@@ -30,7 +30,7 @@ app.use('/api/skills', skillCardRoutes);
 app.use('/api/gigs', gigRoutes);
 app.use('/api/messages', messageRoutes);
 
-// 404
+// 404 handler
 app.use((req, res, next) => {
   const err = new Error('Not Found');
   err.status = 404;
@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 // error handler
 app.use(errorHandler);
 
-// create server + socket.io
+// create HTTP server + socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -49,12 +49,12 @@ const io = new Server(server, {
   },
 });
 
-// socket auth
+// socket auth middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
-  if (!token) return next(new Error('No token'));
+  if (!token) return next(new Error('No token provided'));
   try {
-    const user = verifyToken(token);
+    const user = verifyToken(token); // should return { id, role } or throw
     socket.user = user;
     next();
   } catch (err) {
@@ -68,16 +68,20 @@ io.on('connection', (socket) => {
   socket.join(socket.user.id);
 
   socket.on('sendMessage', async ({ receiver, content }) => {
-    if (!receiver || !content) return;
+    try {
+      if (!receiver || !content) return;
+      const msg = await Message.create({
+        sender: socket.user.id,
+        receiver,
+        content,
+      });
 
-    const msg = await Message.create({
-      sender: socket.user.id,
-      receiver,
-      content,
-    });
-
-    io.to(receiver).emit('newMessage', msg);
-    socket.emit('newMessage', msg);
+      // emit to receiver and sender
+      io.to(receiver).emit('newMessage', msg);
+      socket.emit('newMessage', msg);
+    } catch (err) {
+      console.error('sendMessage error:', err);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -85,7 +89,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// start
+// start server
 const start = async () => {
   try {
     await connectDB(process.env.MONGO_URI);
@@ -114,7 +118,6 @@ const start = async () => {
       console.error('Uncaught Exception thrown', err);
       server.close(() => process.exit(1));
     });
-
   } catch (err) {
     console.error('Failed to start server', err);
     process.exit(1);

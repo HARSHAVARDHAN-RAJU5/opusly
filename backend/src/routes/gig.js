@@ -1,23 +1,24 @@
 const express = require('express');
+const {
+  createGig,
+  getGigs,
+  applyToGig,
+  deleteGig,
+} = require('../controllers/gigController');
+const { authMiddleware } = require('../middleware/auth');
+
 const router = express.Router();
-const { body } = require('express-validator');
-const authMiddleware = require('../middleware/auth');
-const runValidation = require('../middleware/validate');
-const gigController = require('../controllers/gigController');
 
-router.post(
-  '/',
-  authMiddleware,
-  [
-    body('title').notEmpty().withMessage('Title is required'),
-    body('description').notEmpty().withMessage('Description is required'),
-  ],
-  runValidation,
-  gigController.createGig
-);
+// create a gig
+router.post('/', authMiddleware, createGig);
 
-router.get('/', authMiddleware, gigController.getGigs);
-router.post('/:id/apply', authMiddleware, gigController.applyGig);
+// list gigs
+router.get('/', getGigs);
+
+// apply to a gig
+router.post('/:id/apply', authMiddleware, applyToGig);
+
+// delete a gig (provider only)
+router.delete('/:id', authMiddleware, deleteGig);
 
 module.exports = router;
-

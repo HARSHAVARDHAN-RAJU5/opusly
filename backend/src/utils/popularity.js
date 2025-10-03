@@ -1,4 +1,4 @@
-const Post = require('../models/post');
+const Post = require('../models/Post');
 const Gig = require('../models/Gig');
 const SkillCard = require('../models/SkillCard');
 const User = require('../models/User');
@@ -6,7 +6,7 @@ const User = require('../models/User');
 async function calculatePopularity(userId) {
   const posts = await Post.find({ author: userId });
   const gigs = await Gig.find({ provider: userId });
-  const skills = await SkillCard.find({ user: userId });
+  const skills = await SkillCard.find({ owner: userId }); // make sure field is 'owner' not 'user'
 
   let score = 0;
 
@@ -20,7 +20,7 @@ async function calculatePopularity(userId) {
     score += g.applicants.length;
   });
 
-  // skills → each skill adds +1 (or you can add endorsements if you want)
+  // skills → each skill adds +1
   score += skills.length;
 
   // save to user
