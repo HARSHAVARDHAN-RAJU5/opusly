@@ -1,0 +1,12 @@
+# dependencies
+node_modules
+npm-debug.log
+
+# env
+.env
+
+# docker volumes
+mongo_data
+
+# logs
+*.log
