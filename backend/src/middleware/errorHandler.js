@@ -1,31 +1,35 @@
 // src/middleware/errorHandler.js
-// Centralized error handler for express
+// Centralized error handler for Express
+
 module.exports = (err, req, res, next) => {
-  // If a route passed an error object with status, use it; otherwise 500
+  // status & message defaults
   const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
 
-  // Friendly error shape for the client
-  const payload = {
-    message: err.message || 'Internal Server Error',
-  };
-
-  // Only include stack trace in non-production for debugging
-  if (process.env.NODE_ENV !== 'production') {
-    payload.stack = err.stack;
-    // optionally include additional details if provided
-    if (err.details) payload.details = err.details;
-  }
-
-  // Log the error server-side for debugging/alerts
-  // Use console.error so logs show with severity — replace with your logger if you have one
-  console.error(`[${new Date().toISOString()}] Error:`, {
-    message: err.message,
+  // log server-side (always keep logs verbose)
+  const logger = require('../utils/logger');
+// then inside handler:
+  logger.error({
+     message: err.message,
     status,
     stack: err.stack,
     path: req.originalUrl,
     method: req.method,
     body: req.body,
   });
+
+
+  // response payload
+  const payload = {
+    success: false,
+    message,
+  };
+
+  // show stack/details only in non-production
+  if (process.env.NODE_ENV !== 'production') {
+    payload.stack = err.stack;
+    if (err.details) payload.details = err.details;
+  }
 
   res.status(status).json(payload);
 };

@@ -1,24 +1,33 @@
+// src/routes/gig.js
 const express = require('express');
 const {
   createGig,
-  getGigs,
-  applyToGig,
+  getAllGigs,
+  getGigById,
+  updateGig,
   deleteGig,
 } = require('../controllers/gigController');
-const { authMiddleware } = require('../middleware/auth');
+
+const authModule = require('../middleware/auth');
 
 const router = express.Router();
 
-// create a gig
-router.post('/', authMiddleware, createGig);
+// resolve auth middleware whether middleware/auth exports a function or an object
+const authMiddleware = (typeof authModule === 'function')
+  ? authModule
+  : (authModule && (authModule.authMiddleware || authModule.default || authModule))
+  || ((req, res, next) => res.status(500).json({ success: false, message: 'Auth middleware missing' }));
 
-// list gigs
-router.get('/', getGigs);
+// safe wrapper to ensure controller exists
+const safe = (fn) => (req, res, next) => {
+  if (!fn || typeof fn !== 'function') return next(new Error('Missing controller handler'));
+  return fn(req, res, next);
+};
 
-// apply to a gig
-router.post('/:id/apply', authMiddleware, applyToGig);
-
-// delete a gig (provider only)
-router.delete('/:id', authMiddleware, deleteGig);
+router.post('/', authMiddleware, safe(createGig));
+router.get('/', authMiddleware, safe(getAllGigs));
+router.get('/:id', authMiddleware, safe(getGigById));
+router.put('/:id', authMiddleware, safe(updateGig));
+router.delete('/:id', authMiddleware, safe(deleteGig));
 
 module.exports = router;

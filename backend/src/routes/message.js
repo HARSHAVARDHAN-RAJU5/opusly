@@ -1,10 +1,8 @@
 const express = require('express');
-const { getMessages } = require('../controllers/messageController');
-const { authMiddleware } = require('../middleware/auth');
-
 const router = express.Router();
+const messageController = require('../controllers/messageController');
 
-// get conversation with specific user
-router.get('/:withUser', authMiddleware, getMessages);
+router.post('/', (req, res) => messageController.sendMessage(req, res));
+router.get('/:chatId', (req, res) => messageController.getMessages(req, res));
 
 module.exports = router;

@@ -4,6 +4,8 @@ const express = require('express');
 const morgan = require('morgan');
 const http = require('http');
 const { Server } = require('socket.io');
+const helmet = require('helmet');
+const cors = require('cors');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
@@ -18,29 +20,43 @@ const Message = require('./models/Message');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// middlewares
+// ---------- Middlewares ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
+app.use(helmet());
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+  })
+);
 
-// routes
-app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/skills', skillCardRoutes);
-app.use('/api/gigs', gigRoutes);
-app.use('/api/messages', messageRoutes);
+// ---------- Safe route attach ----------
+const safeUse = (path, router) => {
+  if (!router) return;
+  if (typeof router === 'function' || (router && typeof router.use === 'function')) {
+    app.use(path, router);
+  } else {
+    console.warn(`⚠️ Skipped invalid router at path: ${path}`);
+  }
+};
 
-// 404 handler
+safeUse('/api/auth', authRoutes);
+safeUse('/api/posts', postRoutes);
+safeUse('/api/skills', skillCardRoutes);
+safeUse('/api/gigs', gigRoutes);
+safeUse('/api/messages', messageRoutes);
+
+// ---------- 404 & error handlers ----------
 app.use((req, res, next) => {
   const err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
-
-// error handler
 app.use(errorHandler);
 
-// create HTTP server + socket.io
+// ---------- Socket.io setup ----------
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -49,20 +65,18 @@ const io = new Server(server, {
   },
 });
 
-// socket auth middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('No token provided'));
   try {
-    const user = verifyToken(token); // should return { id, role } or throw
+    const user = verifyToken(token);
     socket.user = user;
     next();
-  } catch (err) {
+  } catch {
     next(new Error('Invalid token'));
   }
 });
 
-// socket events
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.user.id}`);
   socket.join(socket.user.id);
@@ -75,8 +89,6 @@ io.on('connection', (socket) => {
         receiver,
         content,
       });
-
-      // emit to receiver and sender
       io.to(receiver).emit('newMessage', msg);
       socket.emit('newMessage', msg);
     } catch (err) {
@@ -89,39 +101,17 @@ io.on('connection', (socket) => {
   });
 });
 
-// start server
+// ---------- Start Server ----------
 const start = async () => {
   try {
-    await connectDB(process.env.MONGO_URI);
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-
-    const shutdown = (signal) => {
-      console.log(`Received ${signal}. Closing server...`);
-      server.close(() => {
-        console.log('Server closed. Exiting process.');
-        process.exit(0);
-      });
-      setTimeout(() => process.exit(1), 10000);
-    };
-
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
-    process.on('SIGINT', () => shutdown('SIGINT'));
-
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-      server.close(() => process.exit(1));
-    });
-
-    process.on('uncaughtException', (err) => {
-      console.error('Uncaught Exception thrown', err);
-      server.close(() => process.exit(1));
-    });
+    await connectDB();
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (err) {
     console.error('Failed to start server', err);
     process.exit(1);
   }
 };
 
-start();
+if (process.env.NODE_ENV !== 'test') start();
+
+module.exports = app;
