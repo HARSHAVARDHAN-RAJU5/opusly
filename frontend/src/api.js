@@ -1,15 +1,14 @@
+// src/api.js
 import axios from "axios";
 
-// ✅ Change this to your backend URL if hosted remotely
 export const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "http://localhost:5000/api", // <-- backend base
+  timeout: 10000, // 10s, helps reveal hanging requests
 });
 
-// Automatically include token for every request
-API.interceptors.request.use((config) => {
+// attach token automatically if available
+API.interceptors.request.use((cfg) => {
   const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
 });

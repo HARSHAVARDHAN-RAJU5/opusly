@@ -19,24 +19,33 @@ const Message = require("./models/Message");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ---------- Middlewares ----------
+// -------------------- Middlewares --------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 app.use(helmet());
-
-// ✅ Allow frontend (Vite + React)
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // Vite frontend
-      "http://localhost:3000", // fallback if CRA
-    ],
+    origin: ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   })
 );
 
-// ---------- Safe route attach ----------
+// 🔍 log every incoming request (for debugging)
+app.use((req, res, next) => {
+  console.log(
+    `${new Date().toISOString()} [REQ] ${req.method} ${req.originalUrl}`
+  );
+  next();
+});
+
+// 🩷 temporary health check endpoint
+app.get("/api/ping", (req, res) => {
+  console.log("Ping received ✅");
+  res.json({ ok: true, ts: Date.now() });
+});
+
+// -------------------- Routes --------------------
 const safeUse = (path, router) => {
   if (!router) return;
   if (typeof router === "function" || (router && typeof router.use === "function")) {
@@ -48,19 +57,20 @@ const safeUse = (path, router) => {
 
 safeUse("/api/auth", authRoutes);
 safeUse("/api/posts", postRoutes);
-safeUse("/api/skills", skillCardRoutes);
+safeUse("/api/skillcard", skillCardRoutes); // ✅ lowercase path
 safeUse("/api/gigs", gigRoutes);
 safeUse("/api/messages", messageRoutes);
 
-// ---------- 404 & error handlers ----------
+// -------------------- Not Found + Error Handling --------------------
 app.use((req, res, next) => {
+  console.log(`❌ 404 Not Found: ${req.originalUrl}`);
   const err = new Error("Not Found");
   err.status = 404;
   next(err);
 });
 app.use(errorHandler);
 
-// ---------- Socket.io setup ----------
+// -------------------- Socket.io Setup --------------------
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -69,6 +79,8 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+const onlineUsers = new Map();
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -83,34 +95,26 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  console.log(`✅ User connected: ${socket.user.id}`);
-  socket.join(socket.user.id);
-
-  socket.on("sendMessage", async ({ receiver, content }) => {
-    try {
-      if (!receiver || !content) return;
-      const msg = await Message.create({
-        sender: socket.user.id,
-        receiver,
-        content,
-      });
-      io.to(receiver).emit("newMessage", msg);
-      socket.emit("newMessage", msg);
-    } catch (err) {
-      console.error("sendMessage error:", err);
-    }
-  });
+  const userId = socket.user.id;
+  onlineUsers.set(userId, socket.id);
+  console.log(`✅ ${userId} connected`);
+  io.emit("onlineUsers", Array.from(onlineUsers.keys()));
 
   socket.on("disconnect", () => {
-    console.log(`❌ User disconnected: ${socket.user.id}`);
+    onlineUsers.delete(userId);
+    io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+    console.log(`❌ ${userId} disconnected`);
   });
 });
 
-// ---------- Start Server ----------
+// -------------------- Start Server --------------------
 const start = async () => {
   try {
     await connectDB();
-    server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log("➡️  Test endpoint: http://localhost:5000/api/ping");
+    });
   } catch (err) {
     console.error("❌ Failed to start server", err);
     process.exit(1);

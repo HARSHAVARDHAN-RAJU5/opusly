@@ -1,79 +1,103 @@
-﻿import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Home, User, FileText, PlusCircle, LogOut, Briefcase } from "lucide-react";
+﻿// src/components/Sidebar.jsx
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Home, Briefcase, User, LogOut, PlusCircle } from "lucide-react";
 
 export default function Sidebar({ user, logout }) {
-  const location = useLocation();
+  const navigate = useNavigate();
+  const role = (user?.role || "").toLowerCase();
 
-  const linkClasses = (path) =>
-    `flex items-center gap-3 p-3 rounded-lg transition ${
-      location.pathname === path
-        ? "bg-indigo-600 text-white"
-        : "text-gray-700 hover:bg-indigo-100"
-    }`;
+  const handleLogout = () => {
+    logout?.();
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    navigate("/login");
+  };
+
+  const menuItems = [
+    { name: "Dashboard", path: "/", icon: <Home size={16} /> },
+    // show "My Applications" only for students
+    ...(role === "student"
+      ? [{ name: "My Applications", path: "/applications", icon: <Briefcase size={16} /> }]
+      : []),
+    { name: "Profile", path: "/profile", icon: <User size={16} /> },
+  ];
+
+  // Build create items according to your requested rules:
+  // - Providers: Gig/Internship + Post
+  // - Students: SkillCard + Gig/Internship + Post
+  // - Both/others: Post only
+  const createItems = [];
+  // Post shown for both roles and any other visitor
+  createItems.push({ name: "Post", path: "/create/post" });
+
+  if (role === "provider") {
+    // provider gets Gig/Internship (and Post already added)
+    createItems.push({ name: "Gig / Internship", path: "/create/gig" });
+  } else if (role === "student") {
+    // student gets SkillCard, Gig, and Post
+    createItems.unshift({ name: "SkillCard", path: "/create/skillcard" }); // put SkillCard first
+    createItems.push({ name: "Gig / Internship", path: "/create/gig" });
+  } else {
+    // non-authenticated or unknown role: only Post is shown (already added)
+  }
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 flex flex-col justify-between shadow-sm">
+    <div className="w-40 h-screen bg-white border-r flex flex-col justify-between">
       <div>
-        <div className="p-5 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-indigo-600 tracking-wide">
-            Opusly
-          </h2>
-          <p className="text-sm text-gray-500 mt-1 capitalize">
-            {user?.role || "user"}
-          </p>
-        </div>
+        <div className="text-xl font-bold text-indigo-600 p-4 tracking-tight">Opusly</div>
+        <p className="text-xs text-gray-400 px-4 mb-2 capitalize">{role || "guest"}</p>
 
-        <nav className="p-4 space-y-1">
-          <Link to="/" className={linkClasses("/")}>
-            <Home size={18} />
-            <span>Dashboard</span>
-          </Link>
-
-          {user?.role === "student" && (
-            <>
-              <Link to="/applications" className={linkClasses("/applications")}>
-                <FileText size={18} />
-                <span>My Applications</span>
-              </Link>
-
-              <Link to="/profile" className={linkClasses("/profile")}>
-                <User size={18} />
-                <span>Profile</span>
-              </Link>
-            </>
-          )}
-
-          {user?.role === "provider" && (
-            <>
-              <Link to="/create-gig" className={linkClasses("/create-gig")}>
-                <Briefcase size={18} />
-                <span>Create Gig</span>
-              </Link>
-
-              <Link to="/create-post" className={linkClasses("/create-post")}>
-                <PlusCircle size={18} />
-                <span>Create Post</span>
-              </Link>
-
-              <Link to="/profile" className={linkClasses("/profile")}>
-                <User size={18} />
-                <span>Profile</span>
-              </Link>
-            </>
-          )}
+        <nav className="flex flex-col gap-1">
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-1.5 mx-2 rounded-md transition-all ${
+                  isActive ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-indigo-50"
+                }`
+              }
+            >
+              {item.icon}
+              <span className="text-xs font-medium">{item.name}</span>
+            </NavLink>
+          ))}
         </nav>
+
+        {/* Create Section */}
+        <div className="mt-4 px-2">
+          <div className="flex items-center gap-1 text-gray-400 text-[11px] uppercase tracking-wide px-2 mb-1">
+            <PlusCircle size={12} />
+            <span>Create</span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {createItems.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                className={({ isActive }) =>
+                  `block px-3 py-1.5 text-xs rounded-md transition-all ${
+                    isActive ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-indigo-50"
+                  }`
+                }
+              >
+                {item.name}
+              </NavLink>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="p-4 border-t border-gray-200">
-        <button
-          onClick={logout}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition"
-        >
-          <LogOut size={18} />
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        className="flex items-center justify-center gap-1.5 m-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm"
+      >
+        <LogOut size={14} />
+        Logout
+      </button>
+    </div>
   );
 }

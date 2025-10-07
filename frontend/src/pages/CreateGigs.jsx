@@ -1,110 +1,110 @@
 import React, { useState } from "react";
 import { API } from "../api";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateGig() {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    skills: "",
-    stipend: "",
-    duration: "",
-  });
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [skills, setSkills] = useState("");
+  const [stipend, setStipend] = useState("");
+  const [location, setLocation] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem("token");
       const payload = {
-        ...form,
-        skills: form.skills.split(",").map((s) => s.trim()),
+        title,
+        description,
+        skills: skills.split(",").map((s) => s.trim()).filter(Boolean),
+        stipend: stipend ? stipend : undefined,
+        location: location ? location : undefined,
       };
+
       const res = await API.post("/gigs", payload, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
+
       if (res.data?.success) {
-        alert("Gig created successfully! 🎉");
-        setForm({
-          title: "",
-          description: "",
-          skills: "",
-          stipend: "",
-          duration: "",
-        });
+        alert("Gig created successfully 🎉");
+        navigate("/");
       } else {
-        alert(res.data?.message || "Failed to create gig.");
+        alert(res.data?.message || "Failed to create gig");
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong creating the gig.");
+      alert("Error creating gig");
     }
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold text-indigo-600 mb-6">Create a Gig</h2>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold text-indigo-600 mb-4">Create Gig / Internship</h1>
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow">
+        <label className="block mb-3">
+          <span className="text-sm font-medium text-gray-700">Title</span>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="mt-1 block w-full border rounded px-3 py-2"
+            placeholder="Frontend Intern"
+          />
+        </label>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow max-w-lg space-y-4"
-      >
-        <input
-          type="text"
-          name="title"
-          placeholder="Gig Title"
-          value={form.title}
-          onChange={handleChange}
-          required
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
+        <label className="block mb-3">
+          <span className="text-sm font-medium text-gray-700">Description</span>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            rows={5}
+            className="mt-1 block w-full border rounded px-3 py-2"
+            placeholder="Describe the role and responsibilities..."
+          />
+        </label>
 
-        <textarea
-          name="description"
-          placeholder="Gig Description"
-          value={form.description}
-          onChange={handleChange}
-          rows={4}
-          required
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
+        <label className="block mb-3">
+          <span className="text-sm font-medium text-gray-700">Required Skills (comma separated)</span>
+          <input
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            className="mt-1 block w-full border rounded px-3 py-2"
+            placeholder="react, node, css"
+          />
+        </label>
 
-        <input
-          type="text"
-          name="skills"
-          placeholder="Required Skills (comma separated)"
-          value={form.skills}
-          onChange={handleChange}
-          required
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <label>
+            <span className="text-sm font-medium text-gray-700">Stipend (optional)</span>
+            <input
+              value={stipend}
+              onChange={(e) => setStipend(e.target.value)}
+              className="mt-1 block w-full border rounded px-3 py-2"
+              placeholder="₹5000"
+            />
+          </label>
 
-        <input
-          type="text"
-          name="stipend"
-          placeholder="Stipend (optional)"
-          value={form.stipend}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
+          <label>
+            <span className="text-sm font-medium text-gray-700">Location (optional)</span>
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="mt-1 block w-full border rounded px-3 py-2"
+              placeholder="Remote / City"
+            />
+          </label>
+        </div>
 
-        <input
-          type="text"
-          name="duration"
-          placeholder="Duration (e.g., 3 months)"
-          value={form.duration}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition"
-        >
-          Create Gig
-        </button>
+        <div className="flex gap-2">
+          <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded">
+            Create Gig
+          </button>
+          <button type="button" onClick={() => navigate("/")} className="px-4 py-2 rounded border">
+            Cancel
+          </button>
+        </div>
       </form>
     </div>
   );
