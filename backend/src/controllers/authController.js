@@ -1,68 +1,33 @@
+// DEBUG login - replace existing login handler with this (src/controllers/authController.js)
+const bcrypt = require('bcryptjs'); // safe cross-platform
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
-// helper to create JWT
-const createToken = (user) => {
-  return jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-};
-
-// signup
-// signup
-exports.signup = async (req, res, next) => {
-  try {
-    const { name, email, password, role } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: 'Email already exists' });
-
-    // Create user with plain password — model's pre('save') will hash it
-    const user = await User.create({
-      name,
-      email,
-      password, // do NOT hash here
-      role,
-    });
-
-    const token = createToken(user);
-    res.status(201).json({ token, user });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// login
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    console.log('[AUTH DEBUG] login called', { body: req.body });
+    let { email, password } = req.body;
+    if (!email || !password) {
+      console.log('[AUTH DEBUG] missing email/password');
+      return res.status(400).json({ message: 'Email and password required' });
+    }
+
+    email = String(email).trim().toLowerCase();
     const user = await User.findOne({ email });
+    console.log('[AUTH DEBUG] found user?', !!user, user ? { id: user._id, email: user.email, role: user.role } : null);
 
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // 🔥 direct bcrypt compare (not custom method)
-    const match = await bcrypt.compare(password, user.password);
-    if (!match)
-      return res.status(400).json({ message: 'Invalid credentials' });
+    console.log('[AUTH DEBUG] storedPwdSample:', typeof user.password === 'string' ? user.password.slice(0,6) : user.password);
+    const ok = await bcrypt.compare(String(password), user.password);
+    console.log('[AUTH DEBUG] bcrypt.compare result:', ok);
 
-    const token = createToken(user);
-    res.status(200).json({ token, user });
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+    return res.status(200).json({ success: true, token, user: { id: user._id, email: user.email, role: user.role } });
   } catch (err) {
-    next(err);
-  }
-};
-
-// me
-exports.me = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(user);
-  } catch (err) {
+    console.error('Auth login error:', err);
     next(err);
   }
 };

@@ -1,32 +1,29 @@
-const express = require("express");
+// src/routes/skillCard.js
+const express = require('express');
 const router = express.Router();
 
+// update these paths if your files live elsewhere
+const skillCardController = require('../controllers/skillCardController');
+const authMiddleware = require('../middleware/auth'); // make sure this path is correct
+
+// Optional: small logger so you get the same console lines you had earlier
 router.use((req, res, next) => {
-  console.log(">>> skillCard route middleware:", req.method, req.originalUrl);
+  if (req.baseUrl && req.baseUrl.includes('skillcard')) {
+    console.log(`>>> skillCard route middleware: ${req.method} ${req.baseUrl}${req.path}`);
+  }
   next();
 });
 
-const { body } = require("express-validator");
-const authMiddleware = require("../middleware/auth");
-const runValidation = require("../middleware/validate");
-const skillCardController = require("../controllers/skillCardController");
+// GET /api/skillcard - list user's skillcards
+router.get('/', authMiddleware, skillCardController.getSkillCards);
 
-// ✅ POST create SkillCard (auth + validation + 3-card limit)
-router.post(
-  "/",
-  authMiddleware,
-  [body("title").notEmpty().withMessage("Title is required")],
-  runValidation,
-  skillCardController.createSkillCard
-);
+// POST /api/skillcard - create
+router.post('/', authMiddleware, skillCardController.createSkillCard);
 
-// ✅ GET all SkillCards for logged-in user
-router.get("/", authMiddleware, skillCardController.getSkillCards);
+// PUT /api/skillcard/:id - update
+router.put('/:id', authMiddleware, skillCardController.updateSkillCard);
 
-// ✅ PUT update SkillCard
-router.put("/:id", authMiddleware, skillCardController.updateSkillCard);
-
-// ✅ DELETE SkillCard
-router.delete("/:id", authMiddleware, skillCardController.deleteSkillCard);
+// DELETE /api/skillcard/:id - delete
+router.delete('/:id', authMiddleware, skillCardController.deleteSkillCard);
 
 module.exports = router;

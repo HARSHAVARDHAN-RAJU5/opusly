@@ -1,23 +1,25 @@
-// controllers/gigController.js
+// src/controllers/gigController.js
 const Gig = require('../models/Gig');
 const User = require('../models/User');
+const SkillCard = require('../models/SkillCard');
 
-// Create gig - server authoritative + role enforcement
-const createGig = async (req, res, next) => {
+// ✅ CREATE GIG
+const createGig = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!req.user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+
     const userId = req.user.id;
-    const userRole = req.user.role; // 'student' | 'provider' etc.
+    const userRole = req.user.role || 'provider';
+    const requestedType =
+      req.body.gigType || (userRole === 'provider' ? 'internship' : 'freelance');
 
-    // Respect client-sent gigType but enforce rules server-side
-    const requestedType = req.body.gigType || (userRole === 'provider' ? 'internship' : 'freelance');
-
-    // Business rule: internships are provider-only
     if (requestedType === 'internship' && userRole !== 'provider') {
-      return res.status(403).json({ success: false, message: 'Only providers can post internships' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Only providers can post internships' });
     }
 
-    // Build server-authoritative gig object
     const gigData = {
       title: req.body.title?.trim() || '',
       description: req.body.description || '',
@@ -25,158 +27,218 @@ const createGig = async (req, res, next) => {
       createdBy: userId,
       postedByRole: userRole,
       gigType: requestedType,
-      applicants: [], // ensure default
+      applicants: [],
+      skills: req.body.skills || [],
     };
 
-    // provider-specific fields
     if (userRole === 'provider') {
       gigData.stipend = req.body.stipend || '';
       gigData.duration = req.body.duration || '';
-      gigData.skills = req.body.skills || [];
-    }
-
-    // student-specific fields (if you want students to post freelance gigs)
-    if (userRole === 'student') {
+    } else if (userRole === 'student') {
       gigData.rate = req.body.rate || '';
       gigData.availability = req.body.availability || '';
-      gigData.skills = req.body.skills || [];
     }
 
-    // minimal validation
-    if (!gigData.title) return res.status(400).json({ success: false, message: 'Title is required' });
+    if (!gigData.title)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Title is required' });
 
     const gig = await Gig.create(gigData);
     return res.status(201).json({ success: true, gig });
   } catch (err) {
-    next(err);
+    console.error('createGig error:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Get all gigs
-const getAllGigs = async (req, res, next) => {
+// ✅ GET ALL GIGS
+const getAllGigs = async (req, res) => {
   try {
     const filter = {};
     if (req.query.role) filter.postedByRole = req.query.role;
     if (req.query.type) filter.gigType = req.query.type;
 
     let query = Gig.find(filter);
-    if (Gig.schema.path('createdBy')) query = query.populate('createdBy', 'name role');
+    if (Gig.schema.path('createdBy'))
+      query = query.populate('createdBy', 'name role');
     const gigs = await query.exec();
     res.json({ success: true, gigs });
   } catch (err) {
-    next(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Get gig by id
-const getGigById = async (req, res, next) => {
+// ✅ GET SINGLE GIG
+const getGigById = async (req, res) => {
   try {
     let query = Gig.findById(req.params.id);
-    if (Gig.schema.path('createdBy')) query = query.populate('createdBy', 'name role');
+    if (Gig.schema.path('createdBy'))
+      query = query.populate('createdBy', 'name role');
     const gig = await query.exec();
-    if (!gig) return res.status(404).json({ success: false, message: 'Gig not found' });
+    if (!gig)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Gig not found' });
     res.json({ success: true, gig });
   } catch (err) {
-    next(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Update gig - only creator
-const updateGig = async (req, res, next) => {
+// ✅ UPDATE GIG
+const updateGig = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!req.user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
     const gig = await Gig.findById(req.params.id);
-    if (!gig) return res.status(404).json({ success: false, message: 'Gig not found' });
-    if (gig.createdBy && gig.createdBy.toString() !== req.user.id)
-      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    if (!gig)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Gig not found' });
 
-    // prevent changing createdBy/postedByRole by client
+    if (gig.createdBy.toString() !== req.user.id)
+      return res
+        .status(403)
+        .json({ success: false, message: 'Unauthorized: not the owner' });
+
     const disallowed = ['createdBy', 'postedByRole', 'applicants'];
-    disallowed.forEach(k => delete req.body[k]);
+    disallowed.forEach((k) => delete req.body[k]);
 
     Object.assign(gig, req.body);
     await gig.save();
     res.json({ success: true, gig });
   } catch (err) {
-    next(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Delete gig - only creator
-const deleteGig = async (req, res, next) => {
+// ✅ DELETE GIG
+const deleteGig = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!req.user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+
     const gig = await Gig.findById(req.params.id);
-    if (!gig) return res.status(404).json({ success: false, message: 'Gig not found' });
-    if (gig.createdBy && gig.createdBy.toString() !== req.user.id)
-      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    if (!gig)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Gig not found' });
 
-    await gig.deleteOne();
-    res.json({ success: true, message: 'Gig deleted successfully' });
+    if (gig.createdBy.toString() !== req.user.id)
+      return res
+        .status(403)
+        .json({ success: false, message: 'Forbidden: not the owner' });
+
+    await Gig.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: 'Gig deleted successfully' });
   } catch (err) {
-    next(err);
-  }
-};
-
-// Apply to a gig
-const applyToGig = async (req, res) => {
-  try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
-    const gig = await Gig.findById(req.params.id);
-    if (!gig) return res.status(404).json({ success: false, message: 'Gig not found' });
-
-    // Owner can't apply to their own gig
-    if (gig.createdBy && gig.createdBy.toString() === req.user.id) {
-      return res.status(400).json({ success: false, message: "You can't apply to your own gig" });
-    }
-
-    // Example rule: internships should only be applied to by students
-    if (gig.gigType === 'internship' && req.user.role !== 'student') {
-      return res.status(403).json({ success: false, message: 'Only students can apply to internships' });
-    }
-
-    // Duplication check
-    const alreadyApplied = (gig.applicants || []).some(a => a.toString() === req.user.id);
-    if (alreadyApplied) return res.status(400).json({ success: false, message: 'Already applied' });
-
-    gig.applicants = gig.applicants || [];
-    gig.applicants.push(req.user.id);
-    await gig.save();
-
-    // increment creator popularity (or use your popularity util)
-    if (gig.createdBy) {
-      await User.findByIdAndUpdate(gig.createdBy, { $inc: { popularityScore: 1 } });
-    }
-
-    // Optional: emit real-time event if you stored io on req.app (app.set('io', io))
-    try {
-      const io = req.app && req.app.get && req.app.get('io');
-      if (io && gig.createdBy) {
-        io.to(gig.createdBy.toString()).emit('gig:applicant', {
-          gigId: gig._id,
-          applicant: { id: req.user.id, name: req.user.name || '' }
-        });
-      }
-    } catch (e) {
-      // non-fatal
-    }
-
-    return res.json({ success: true, message: 'Applied successfully' });
-  } catch (err) {
+    console.error('deleteGig error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// View applicants - owner only
+// ✅ APPLY TO GIG
+const applyToGig = async (req, res) => {
+  try {
+    console.log(
+      'applyToGig called - userId:',
+      req.user?.id,
+      'role:',
+      req.user?.role,
+      'gigId:',
+      req.params.id
+    );
+
+    if (!req.user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const gig = await Gig.findById(req.params.id);
+    if (!gig)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Gig not found' });
+
+    if (gig.createdBy.toString() === req.user.id)
+      return res
+        .status(400)
+        .json({ success: false, message: "You can't apply to your own gig" });
+
+    if (gig.gigType === 'internship' && req.user.role !== 'student') {
+      return res
+        .status(403)
+        .json({ success: false, message: 'Only students can apply' });
+    }
+
+    const { skillCardId } = req.body || {};
+    if (skillCardId) {
+      const sc = await SkillCard.findById(skillCardId);
+      if (!sc)
+        return res
+          .status(400)
+          .json({ success: false, message: 'SkillCard not found' });
+      if (sc.user && sc.user.toString() !== req.user.id)
+        return res
+          .status(403)
+          .json({ success: false, message: 'SkillCard does not belong to you' });
+    }
+
+    const alreadyApplied = gig.applicants.some(
+      (a) => a.toString() === req.user.id
+    );
+    if (alreadyApplied)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Already applied' });
+
+    gig.applicants.push(req.user.id);
+    await gig.save();
+
+    if (gig.createdBy) {
+      await User.findByIdAndUpdate(gig.createdBy, {
+        $inc: { popularityScore: 1 },
+      });
+    }
+
+    try {
+      const io = req.app?.get?.('io');
+      if (io && gig.createdBy) {
+        io.to(gig.createdBy.toString()).emit('gig:applicant', {
+          gigId: gig._id,
+          applicant: { id: req.user.id, name: req.user.name || '' },
+          skillCardId: skillCardId || null,
+        });
+      }
+    } catch (e) {
+      console.warn('applyToGig: io emit failed', e.message);
+    }
+
+    return res.json({ success: true, message: 'Applied successfully' });
+  } catch (err) {
+    console.error('applyToGig error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ✅ VIEW APPLICANTS
 const viewApplicants = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
-    const gig = await Gig.findById(req.params.id).populate('applicants', 'name email');
-    if (!gig) return res.status(404).json({ success: false, message: 'Gig not found' });
+    if (!req.user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-    const createdById = gig.createdBy ? gig.createdBy.toString() : null;
-    if (!createdById) return res.status(400).json({ success: false, message: 'Gig has no creator info' });
-    if (createdById !== req.user.id) return res.status(403).json({ success: false, message: 'Not authorized' });
+    const gig = await Gig.findById(req.params.id).populate(
+      'applicants',
+      'name email'
+    );
+    if (!gig)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Gig not found' });
+
+    if (gig.createdBy.toString() !== req.user.id)
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized' });
 
     return res.json({ success: true, applicants: gig.applicants || [] });
   } catch (err) {

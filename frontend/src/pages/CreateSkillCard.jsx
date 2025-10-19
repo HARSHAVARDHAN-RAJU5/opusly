@@ -1,202 +1,304 @@
 import React, { useEffect, useState } from "react";
 import { API } from "../api";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 export default function CreateSkillCard() {
-  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
   const [level, setLevel] = useState("Beginner");
-  const [tagInput, setTagInput] = useState("");
-  const [skills, setSkills] = useState([]);
-  const [existing, setExisting] = useState([]);
+  const [skillsInput, setSkillsInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingExisting, setLoadingExisting] = useState(false);
+
+  const [skillcards, setSkillcards] = useState([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editLevel, setEditLevel] = useState("Beginner");
+  const [editSkills, setEditSkills] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadExisting();
+    loadSkillcards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadExisting() {
-    setLoadingExisting(true);
+  const loadSkillcards = async () => {
+    setLoadingList(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await API.get("/skillcard", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await API.get("/skillcard");
       const list = res?.data?.skillcards ?? res?.data ?? [];
-      setExisting(Array.isArray(list) ? list : []);
+      setSkillcards(Array.isArray(list) ? list : []);
     } catch (err) {
-      console.warn("Failed to load skillcards", err?.response?.data || err?.message);
-      setExisting([]);
+      console.error("load skillcards failed:", err?.response?.data || err?.message);
+      setSkillcards([]);
     } finally {
-      setLoadingExisting(false);
+      setLoadingList(false);
     }
-  }
+  };
 
-  function addTagFromInput() {
-    const raw = tagInput.trim();
-    if (!raw) return;
-    const parts = raw
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
-    setSkills((prev) => Array.from(new Set([...prev, ...parts])));
-    setTagInput("");
-  }
+  const canCreateMore = () => {
+    return skillcards.length < 3;
+  };
 
-  function handleTagKey(e) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTagFromInput();
-    }
-  }
-
-  function removeTag(i) {
-    setSkills((s) => s.filter((_, idx) => idx !== i));
-  }
-
-  async function handleCreate(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!title.trim()) return toast.error("Title is required");
+    if (!canCreateMore()) return toast.error("You can only have up to 3 SkillCards");
 
-    if (existing.length >= 3) {
-      alert("You already have 3 SkillCards.");
-      return;
-    }
+    const payload = {
+      title: title.trim(),
+      level,
+      skills: skillsInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    };
 
-    const payload = { title: name, level, skills };
     setLoading(true);
-
     try {
-      const token = localStorage.getItem("token");
-      const res = await API.post("/skillcard", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res?.data?.success) {
-        alert("SkillCard created successfully 🎉");
-        setName("");
+      const res = await API.post("/skillcard", payload);
+      if (res?.status === 201 || res?.data?.success) {
+        toast.success("SkillCard created");
+        setTitle("");
         setLevel("Beginner");
-        setSkills([]);
-        await loadExisting();
+        setSkillsInput("");
+        await loadSkillcards();
       } else {
-        alert(res?.data?.message || "Unexpected response from server");
+        toast.error(res?.data?.message || "Failed to create SkillCard");
       }
     } catch (err) {
-      console.error("Error creating skillcard:", err?.response?.status, err?.response?.data || err?.message);
-      alert("SkillCard creation failed. Check console for details.");
+      console.error("create skillcard failed:", err?.response?.data || err?.message);
+      toast.error(err?.response?.data?.message || "Failed to create SkillCard");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  function clearForm() {
-    setName("");
-    setLevel("Beginner");
-    setTagInput("");
-    setSkills([]);
-  }
+  const startEdit = (card) => {
+    setEditingId(card._id ?? card.id);
+    setEditTitle(card.title ?? "");
+    setEditLevel(card.level ?? "Beginner");
+    setEditSkills(Array.isArray(card.skills) ? card.skills.join(", ") : (card.skills || ""));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditTitle("");
+    setEditLevel("Beginner");
+    setEditSkills("");
+  };
+
+  const saveEdit = async (id) => {
+    if (!editTitle.trim()) return toast.error("Title is required");
+    setLoading(true);
+    try {
+      const payload = {
+        title: editTitle.trim(),
+        level: editLevel,
+        skills: editSkills
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      };
+      const res = await API.put(`/skillcard/${id}`, payload);
+      if (res?.data?.success || res?.status === 200) {
+        toast.success("Updated");
+        cancelEdit();
+        await loadSkillcards();
+      } else {
+        toast.error(res?.data?.message || "Update failed");
+      }
+    } catch (err) {
+      console.error("update failed:", err?.response?.data || err?.message);
+      toast.error(err?.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCard = async (id) => {
+    if (!confirm("Delete this SkillCard?")) return;
+    setLoading(true);
+    try {
+      const res = await API.delete(`/skillcard/${id}`);
+      if (res?.data?.success || res?.status === 200) {
+        toast.success("Deleted");
+        if (editingId === id) cancelEdit();
+        await loadSkillcards();
+      } else {
+        toast.error(res?.data?.message || "Delete failed");
+      }
+    } catch (err) {
+      console.error("delete failed:", err?.response?.data || err?.message);
+      toast.error(err?.response?.data?.message || "Delete failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-indigo-600 mb-4">SkillCards</h1>
+    <div className="min-h-screen p-6 bg-gray-100 flex items-start justify-center">
+      <div className="w-full max-w-3xl">
+        <div className="bg-white rounded-2xl shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold text-indigo-600 mb-4">Create SkillCard</h2>
 
-      <form onSubmit={handleCreate} className="bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <label className="md:col-span-2">
-            <span className="text-sm font-medium text-gray-700">SkillCard name</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full border rounded px-3 py-2"
-              placeholder="e.g. Frontend (React)"
-              required
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-medium text-gray-700">Level</span>
-            <select
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
-              className="mt-1 block w-full border rounded px-3 py-2"
-            >
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Advanced</option>
-              <option>Expert</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="mb-4">
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Skills / Tags</span>
-            <div className="mt-2 flex items-center flex-wrap gap-2">
-              {skills.map((t, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-sm"
-                >
-                  {t}
-                  <button type="button" onClick={() => removeTag(i)} className="ml-1 text-indigo-500 hover:text-indigo-700">
-                    ✕
-                  </button>
-                </span>
-              ))}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
               <input
-                placeholder="Type a skill and press Enter or comma"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagKey}
-                onBlur={addTagFromInput}
-                className="border rounded px-3 py-2 mt-1 flex-1 min-w-[160px]"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                placeholder="e.g. React + UI"
+                disabled={!canCreateMore() || loading}
+                required
               />
             </div>
-          </label>
-        </div>
 
-        <div className="flex gap-3 items-center mb-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Create"}
-          </button>
-          <button type="button" onClick={clearForm} className="px-4 py-2 rounded border">
-            Clear
-          </button>
-
-          <div className="text-sm text-gray-500 ml-auto">
-            You can create up to 3 SkillCards. ({existing.length}/3)
-          </div>
-        </div>
-
-        <hr className="my-3" />
-
-        <h3 className="text-lg font-medium mb-2">Your SkillCards</h3>
-        {loadingExisting ? (
-          <p className="text-gray-500">Loading your SkillCards...</p>
-        ) : existing.length === 0 ? (
-          <p className="text-gray-500">No SkillCards yet. Create one to apply for internships.</p>
-        ) : (
-          <div className="space-y-3">
-            {existing.map((c) => (
-              <div
-                key={c._id ?? c.id}
-                className="p-3 border rounded bg-gray-50 flex justify-between items-center"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+              <select
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className="w-full border rounded-md p-2 focus:outline-none"
+                disabled={!canCreateMore() || loading}
               >
-                <div>
-                  <div className="font-semibold text-indigo-700">{c.title ?? c.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {(c.level ?? c.skillLevel) + (c.skills?.length ? ` • ${c.skills.join(", ")}` : "")}
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Skills (comma separated)
+              </label>
+              <input
+                value={skillsInput}
+                onChange={(e) => setSkillsInput(e.target.value)}
+                className="w-full border rounded-md p-2 focus:outline-none"
+                placeholder="react, tailwind, figma"
+                disabled={!canCreateMore() || loading}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="px-4 py-2 rounded-md border"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !canCreateMore()}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {loading ? "Creating..." : "Create SkillCard"}
+              </button>
+            </div>
+
+            {!canCreateMore() && (
+              <p className="text-sm text-red-600 mt-2">You already have 3 SkillCards. Delete one to add another.</p>
+            )}
+          </form>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h3 className="text-lg font-semibold text-indigo-600 mb-4">Your SkillCards</h3>
+
+          {loadingList ? (
+            <p className="text-gray-500">Loading...</p>
+          ) : skillcards.length === 0 ? (
+            <div className="text-sm text-gray-500">No SkillCards yet</div>
+          ) : (
+            <div className="space-y-3">
+              {skillcards.map((s) => {
+                const id = s._id ?? s.id;
+                const isEditing = editingId === id;
+                return (
+                  <div key={id} className="border rounded p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="flex-1">
+                      {!isEditing ? (
+                        <>
+                          <div className="font-medium text-indigo-700">{s.title || s.name}</div>
+                          <div className="text-xs text-gray-500">{s.level || s.skillLevel}</div>
+                          <div className="text-sm text-gray-700 mt-2">
+                            {Array.isArray(s.skills) ? s.skills.join(", ") : s.skills}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-2">
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="w-full border rounded-md p-2 focus:outline-none"
+                          />
+                          <select
+                            value={editLevel}
+                            onChange={(e) => setEditLevel(e.target.value)}
+                            className="w-full border rounded-md p-2 focus:outline-none"
+                          >
+                            <option>Beginner</option>
+                            <option>Intermediate</option>
+                            <option>Advanced</option>
+                          </select>
+                          <input
+                            value={editSkills}
+                            onChange={(e) => setEditSkills(e.target.value)}
+                            className="w-full border rounded-md p-2 focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 items-start">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={() => saveEdit(id)}
+                            className="bg-green-600 text-white px-3 py-1.5 rounded"
+                            disabled={loading}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-3 py-1.5 border rounded"
+                            disabled={loading}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEdit(s)}
+                            className="px-3 py-1.5 border rounded"
+                            disabled={loading}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteCard(id)}
+                            className="px-3 py-1.5 bg-red-600 text-white rounded"
+                            disabled={loading}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </form>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

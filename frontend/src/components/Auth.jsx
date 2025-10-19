@@ -28,7 +28,22 @@ export default function Auth({ onAuth }) {
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+
+      if (err.response) {
+        const { status, data } = err.response;
+
+        if (status === 409) {
+          alert("Email already exists. Please log in instead.");
+        } else if (status === 400) {
+          alert(data?.message || "Invalid input. Please check your details.");
+        } else if (status === 401) {
+          alert("Invalid credentials. Please try again.");
+        } else {
+          alert(data?.message || "Something went wrong. Try again later.");
+        }
+      } else {
+        alert("Network error. Please check your internet connection.");
+      }
     }
   };
 
@@ -123,14 +138,13 @@ export default function Auth({ onAuth }) {
         </p>
       </div>
 
-      {/* Popularity & Message */}
       {!isSignup && (
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 mb-2">
             Boost your popularity score by connecting with others ✨
           </p>
           <button
-            onClick={() => alert('Redirecting to your chat...')}
+            onClick={() => alert("Redirecting to your chat...")}
             className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm shadow"
           >
             Go to Messages

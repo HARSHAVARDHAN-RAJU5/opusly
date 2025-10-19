@@ -1,3 +1,4 @@
+// src/server.js
 require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
@@ -5,6 +6,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const helmet = require("helmet");
 const cors = require("cors");
+const path = require("path");
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
@@ -23,7 +25,14 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
-app.use(helmet());
+
+// allow cross-origin resource loading (images etc.) while keeping helmet protections
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:3000"],
@@ -31,15 +40,16 @@ app.use(
   })
 );
 
-// 🔍 log every incoming request (for debugging)
+// 🩷 Serve uploaded images (corrected path)
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+
+// 🔍 Log every incoming request
 app.use((req, res, next) => {
-  console.log(
-    `${new Date().toISOString()} [REQ] ${req.method} ${req.originalUrl}`
-  );
+  console.log(`${new Date().toISOString()} [REQ] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// 🩷 temporary health check endpoint
+// 🩷 Health check
 app.get("/api/ping", (req, res) => {
   console.log("Ping received ✅");
   res.json({ ok: true, ts: Date.now() });
@@ -55,9 +65,10 @@ const safeUse = (path, router) => {
   }
 };
 
+// ✅ Main routes
 safeUse("/api/auth", authRoutes);
 safeUse("/api/posts", postRoutes);
-safeUse("/api/skillcard", skillCardRoutes); // ✅ lowercase path
+safeUse("/api/skillcard", skillCardRoutes);
 safeUse("/api/gigs", gigRoutes);
 safeUse("/api/messages", messageRoutes);
 
@@ -114,6 +125,7 @@ const start = async () => {
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log("➡️  Test endpoint: http://localhost:5000/api/ping");
+      console.log("🖼️  Uploads served from: http://localhost:5000/uploads/posts/");
     });
   } catch (err) {
     console.error("❌ Failed to start server", err);

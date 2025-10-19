@@ -1,48 +1,40 @@
 // src/pages/CreatePost.jsx
 import React, { useRef, useState } from "react";
 import { API } from "../api";
+import toast from "react-hot-toast";
 
 export default function CreatePost() {
   const fileRef = useRef();
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
-  const [images, setImages] = useState([]); // { file, previewUrl }
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // config
   const MAX_IMAGES = 6;
-  const MAX_IMAGE_MB = 5; // max per image
+  const MAX_MB = 5;
 
   const onFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    // limit number of images
     const allowedSlots = Math.max(0, MAX_IMAGES - images.length);
     const toAdd = files.slice(0, allowedSlots);
 
-    const validated = toAdd.map((file) => {
-      // simple validation
-      const sizeMB = file.size / 1024 / 1024;
-      return {
-        file,
-        previewUrl: URL.createObjectURL(file),
-        tooLarge: sizeMB > MAX_IMAGE_MB,
-      };
-    });
+    const validated = toAdd.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      tooLarge: file.size / 1024 / 1024 > MAX_MB,
+    }));
 
-    // optionally filter out tooLarge here or still show with warning
     setImages((prev) => [...prev, ...validated]);
-    // reset input so selecting same file again works
-    fileRef.current.value = "";
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const removeImageAt = (index) => {
     setImages((prev) => {
-      // revoke objectURL to avoid memory leak
-      const item = prev[index];
-      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      const img = prev[index];
+      if (img?.previewUrl) URL.revokeObjectURL(img.previewUrl);
       return prev.filter((_, i) => i !== index);
     });
   };
@@ -50,45 +42,71 @@ export default function CreatePost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // front-end validations
-    if (!title.trim()) return alert("Please enter a title");
-    if (!description.trim()) return alert("Please enter a description");
+    if (!title.trim()) return toast.error("Title is required");
+    if (!content.trim()) return toast.error("Content is required");
     if (images.some((img) => img.tooLarge))
-      return alert(`One or more images exceed ${MAX_IMAGE_MB} MB. Remove or compress them.`);
+      return toast.error(`One or more images exceed ${MAX_MB} MB`);
 
     setLoading(true);
     try {
-      const form = new FormData();
-      form.append("title", title);
-      form.append("description", description);
-      // tags: comma-separated -> array on server
-      form.append("tags", tags);
-
-      images.forEach((imgObj, idx) => {
-        // Append files as images[] to be compatible with many backends
-        form.append("images", imgObj.file, imgObj.file.name || `image-${idx}.jpg`);
-      });
-
       const token = localStorage.getItem("token");
-      const res = await API.post("/posts", form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
+      if (!token) {
+        toast.error("Not logged in. Please log in again.");
+        setLoading(false);
+        return;
+      }
 
-      // success
-      alert("Post created successfully 💫");
-      // optionally redirect or clear form
-      setTitle("");
-      setDescription("");
-      setTags("");
-      images.forEach((i) => i.previewUrl && URL.revokeObjectURL(i.previewUrl));
-      setImages([]);
-      // if you want to navigate, use react-router's useNavigate in future
+      let res;
+
+      if (images.length > 0) {
+        // multipart form for images
+        const form = new FormData();
+        form.append("title", title.trim());
+        form.append("content", content.trim());
+        form.append(
+          "tags",
+          tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .join(",")
+        );
+        images.forEach((img, idx) => {
+          form.append("images", img.file, img.file.name || `image-${idx}.jpg`);
+        });
+
+        res = await API.post("/posts", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        // normal JSON if no images
+        const payload = {
+          title: title.trim(),
+          content: content.trim(),
+          tags: tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+        };
+
+        res = await API.post("/posts", payload, {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (res?.status === 201 || res?.data?.success) {
+        toast.success("Post created successfully 🎉");
+        setTitle("");
+        setContent("");
+        setTags("");
+        images.forEach((i) => i.previewUrl && URL.revokeObjectURL(i.previewUrl));
+        setImages([]);
+      } else {
+        toast.error(res?.data?.message || "Failed to create post");
+      }
     } catch (err) {
       console.error("Create post failed:", err?.response?.data || err?.message);
-      alert("Failed to create post. Check console for details.");
+      toast.error(err?.response?.data?.message || "Failed to create post");
     } finally {
       setLoading(false);
     }
@@ -100,6 +118,7 @@ export default function CreatePost() {
         <h2 className="text-xl font-semibold text-indigo-600 mb-4">Create Post</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
@@ -107,22 +126,28 @@ export default function CreatePost() {
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
               placeholder="Short, clear title"
+              required
             />
           </div>
 
+          {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
               rows={5}
               className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="Add details. Explain why these images are relevant."
+              placeholder="Write your thoughts..."
+              required
             />
           </div>
 
+          {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags (comma separated)
+            </label>
             <input
               value={tags}
               onChange={(e) => setTags(e.target.value)}
@@ -131,10 +156,9 @@ export default function CreatePost() {
             />
           </div>
 
-          {/* images */}
+          {/* Images */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Images</label>
-
             <div className="flex items-center gap-3">
               <input
                 ref={fileRef}
@@ -154,11 +178,10 @@ export default function CreatePost() {
               </label>
 
               <p className="text-xs text-gray-500">
-                {images.length}/{MAX_IMAGES} images • max {MAX_IMAGE_MB}MB each
+                {images.length}/{MAX_IMAGES} images • max {MAX_MB}MB each
               </p>
             </div>
 
-            {/* preview thumbnails */}
             <div className="mt-3 grid grid-cols-3 gap-3">
               {images.map((img, i) => (
                 <div key={i} className="relative group">
@@ -172,7 +195,6 @@ export default function CreatePost() {
                       Too large
                     </div>
                   )}
-
                   <button
                     type="button"
                     onClick={() => removeImageAt(i)}
@@ -186,6 +208,7 @@ export default function CreatePost() {
             </div>
           </div>
 
+          {/* Submit */}
           <div className="flex justify-end">
             <button
               type="submit"

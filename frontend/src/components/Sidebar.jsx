@@ -16,38 +16,48 @@ export default function Sidebar({ user, logout }) {
 
   const menuItems = [
     { name: "Dashboard", path: "/", icon: <Home size={16} /> },
-    // show "My Applications" only for students
     ...(role === "student"
       ? [{ name: "My Applications", path: "/applications", icon: <Briefcase size={16} /> }]
       : []),
     { name: "Profile", path: "/profile", icon: <User size={16} /> },
   ];
 
-  // Build create items according to your requested rules:
-  // - Providers: Gig/Internship + Post
-  // - Students: SkillCard + Gig/Internship + Post
-  // - Both/others: Post only
+  // ------------------ CREATE SECTION ------------------
   const createItems = [];
-  // Post shown for both roles and any other visitor
+
+  // every role can post
   createItems.push({ name: "Post", path: "/create/post" });
 
   if (role === "provider") {
-    // provider gets Gig/Internship (and Post already added)
-    createItems.push({ name: "Gig / Internship", path: "/create/gig" });
+    // Providers see Internship
+    createItems.push({
+      name: "Internship",
+      path: "/create/internship",
+    });
   } else if (role === "student") {
-    // student gets SkillCard, Gig, and Post
-    createItems.unshift({ name: "SkillCard", path: "/create/skillcard" }); // put SkillCard first
-    createItems.push({ name: "Gig / Internship", path: "/create/gig" });
-  } else {
-    // non-authenticated or unknown role: only Post is shown (already added)
+    // Students see SkillCard first and Gig second
+    createItems.unshift({
+      name: "SkillCard",
+      path: "/create/skillcard",
+    });
+    createItems.push({
+      name: "Gig",
+      path: "/create/gig",
+    });
   }
 
   return (
     <div className="w-40 h-screen bg-white border-r flex flex-col justify-between">
+      {/* ---------- TOP SECTION ---------- */}
       <div>
-        <div className="text-xl font-bold text-indigo-600 p-4 tracking-tight">Opusly</div>
-        <p className="text-xs text-gray-400 px-4 mb-2 capitalize">{role || "guest"}</p>
+        <div className="text-xl font-bold text-indigo-600 p-4 tracking-tight">
+          Opusly
+        </div>
+        <p className="text-xs text-gray-400 px-4 mb-2 capitalize">
+          {role || "guest"}
+        </p>
 
+        {/* ---------- MAIN NAVIGATION ---------- */}
         <nav className="flex flex-col gap-1">
           {menuItems.map((item) => (
             <NavLink
@@ -55,7 +65,9 @@ export default function Sidebar({ user, logout }) {
               to={item.path}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-1.5 mx-2 rounded-md transition-all ${
-                  isActive ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-indigo-50"
+                  isActive
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-700 hover:bg-indigo-50"
                 }`
               }
             >
@@ -65,7 +77,7 @@ export default function Sidebar({ user, logout }) {
           ))}
         </nav>
 
-        {/* Create Section */}
+        {/* ---------- CREATE SECTION ---------- */}
         <div className="mt-4 px-2">
           <div className="flex items-center gap-1 text-gray-400 text-[11px] uppercase tracking-wide px-2 mb-1">
             <PlusCircle size={12} />
@@ -79,7 +91,9 @@ export default function Sidebar({ user, logout }) {
                 to={item.path}
                 className={({ isActive }) =>
                   `block px-3 py-1.5 text-xs rounded-md transition-all ${
-                    isActive ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-indigo-50"
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-gray-700 hover:bg-indigo-50"
                   }`
                 }
               >
@@ -90,7 +104,7 @@ export default function Sidebar({ user, logout }) {
         </div>
       </div>
 
-      {/* Logout */}
+      {/* ---------- LOGOUT BUTTON ---------- */}
       <button
         onClick={handleLogout}
         className="flex items-center justify-center gap-1.5 m-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm"

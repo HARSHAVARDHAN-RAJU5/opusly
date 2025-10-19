@@ -3,6 +3,7 @@ const express = require('express');
 const {
   createGig,
   getAllGigs,
+  getMyGigs,
   getGigById,
   updateGig,
   deleteGig,
@@ -33,14 +34,15 @@ const safe = (fn) => (req, res, next) => {
 };
 
 // ---------- GIG CRUD ----------
-router.post('/', authMiddleware, safe(createGig));      // provider/student creates gig
-router.get('/', authMiddleware, safe(getAllGigs));      // anyone fetches gigs
-router.get('/:id', authMiddleware, safe(getGigById));   // single gig
-router.put('/:id', authMiddleware, safe(updateGig));    // only creator edits
-router.delete('/:id', authMiddleware, safe(deleteGig)); // only creator deletes
+router.post('/', authMiddleware, safe(createGig));      // create gig
+router.get('/', authMiddleware, safe(getAllGigs));      // get all gigs
+router.get('/my', authMiddleware, safe(getMyGigs));     // get gigs created by current user
+router.get('/:id', authMiddleware, safe(getGigById));   // get single gig
+router.put('/:id', authMiddleware, safe(updateGig));    // update gig
+router.delete('/:id', authMiddleware, safe(deleteGig)); // delete gig
 
 // ---------- APPLICATION ROUTES ----------
-router.post('/:id/apply', authMiddleware, safe(applyToGig));          // student applies
+router.post('/:id/apply', authMiddleware, safe(applyToGig));          // student applies to gig
 router.get('/:id/applicants', authMiddleware, safe(viewApplicants));  // provider views applicants
 
 module.exports = router;

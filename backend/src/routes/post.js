@@ -1,27 +1,75 @@
 // src/routes/post.js
-const express = require('express');
-const postController = require('../controllers/postController');
-const authModule = require('../middleware/auth');
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
+const postController = require("../controllers/postController");
+const authModule = require("../middleware/auth");
 
 const router = express.Router();
 
-// resolve auth middleware whether file exported a function or an object
-const authMiddleware = (typeof authModule === 'function')
-  ? authModule
-  : (authModule && authModule.authMiddleware)
-  || ((req, res, next) => res.status(500).json({ success: false, message: 'Auth middleware missing' }));
+// ---------------- Auth Middleware Resolve ----------------
+const authMiddleware =
+  typeof authModule === "function"
+    ? authModule
+    : (authModule && authModule.authMiddleware) ||
+      ((req, res, next) =>
+        res
+          .status(500)
+          .json({ success: false, message: "Auth middleware missing" }));
 
-// helper to ensure controller fn exists
-const safe = (fn) => (req, res, next) => {
-  if (!fn || typeof fn !== 'function') return next(new Error('Missing controller handler'));
-  return fn(req, res, next);
+// ---------------- Multer Setup ----------------
+// IMPORTANT: point to backend-root/uploads/posts (one level up from src)
+const UPLOAD_DIR = path.join(__dirname, "..", "uploads", "posts");
+
+// ensure upload dir exists
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const safe = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
+    cb(null, safe);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
+});
+
+// ---------------- Debug Logs Middleware ----------------
+const debugUploads = (req, res, next) => {
+  console.log("💾 --- POST /api/posts received ---");
+  console.log("req.files =", req.files);
+  console.log("req.body =", req.body);
+  next();
 };
 
-router.post('/', authMiddleware, safe(postController.createPost));
-router.get('/', authMiddleware, safe(postController.getPosts));
-router.put('/:id', authMiddleware, safe(postController.updatePost));
-router.delete('/:id', authMiddleware, safe(postController.deletePost));
-router.post('/:id/like', authMiddleware, safe(postController.likePost));
-router.post('/:id/unlike', authMiddleware, safe(postController.unlikePost));
+// ---------------- Routes ----------------
+
+// 🩷 Create Post (handles text + up to 6 images)
+router.post(
+  "/",
+  authMiddleware,
+  upload.array("images", 6),
+  debugUploads,
+  postController.createPost
+);
+
+// 🩷 Get all posts
+router.get("/", authMiddleware, postController.getPosts);
+
+// 🩷 Update a post
+router.put("/:id", authMiddleware, postController.updatePost);
+
+// 🩷 Delete a post
+router.delete("/:id", authMiddleware, postController.deletePost);
+
+// 🩷 Like & Unlike
+router.post("/:id/like", authMiddleware, postController.likePost);
+router.post("/:id/unlike", authMiddleware, postController.unlikePost);
 
 module.exports = router;
