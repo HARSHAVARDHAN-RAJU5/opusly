@@ -2,12 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-/**
- * GigCard - simple card for a gig with Apply button for students.
- * - Expects a `gig` prop with at least {_id, title, provider, description}
- * - backend apply endpoint assumed: POST /api/gigs/:id/apply
- *   -> change APPLY_URL_BASE if your backend differs
- */
+
 
 const APPLY_URL_BASE = "/api/gigs"; // set to your backend base for gigs if different
 

@@ -2,13 +2,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-/**
- * Lightweight auth guard that:
- * - checks for token OR window/app user OR localStorage user
- * - if requiredRole is set, enforces role (falls back to localStorage "role")
- *
- * This avoids requiring a missing AuthContext while still protecting routes.
- */
 export default function RequireAuth({ children, requiredRole }) {
   // token check
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;

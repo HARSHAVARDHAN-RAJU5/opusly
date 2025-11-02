@@ -10,7 +10,7 @@ import ProviderDashboard from "./pages/ProviderDashboard";
 import MyApplications from "./pages/MyApplications";
 import OpuslyProfile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
-import CreateGigPage from "./pages/CreateGigPage";
+import CreateGigPage from "./pages/CreateGigPages.jsx";
 import CreateInternshipPage from "./pages/CreateInternshipPage";
 import RequireAuth from "./components/RequireAuth";
 import CreateRoleRedirect from "./components/CreateRoleRedirect";

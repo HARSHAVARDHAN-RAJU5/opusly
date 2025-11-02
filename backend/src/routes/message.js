@@ -3,7 +3,7 @@ const router = express.Router();
 const Message = require("../models/Message");
 const { verifyToken } = require("../middleware/auth");
 
-// ✅ Get recent chats for the logged-in user
+//  Get recent chats for the logged-in user
 router.get("/recent", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -54,7 +54,7 @@ router.get("/recent", async (req, res) => {
   }
 });
 
-// ✅ Fetch chat history between current user and another
+//  Fetch chat history between current user and another
 router.get("/:userId", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;

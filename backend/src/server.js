@@ -21,12 +21,10 @@ const Message = require("./models/Message");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// -------------------- Middlewares --------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 
-// allow cross-origin resource loading (images etc.) while keeping helmet protections
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -40,32 +38,31 @@ app.use(
   })
 );
 
-// 🩷 Serve uploaded images (corrected path)
+// Serve uploaded images (corrected path)
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
-// 🔍 Log every incoming request
+// Log every incoming request
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} [REQ] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// 🩷 Health check
+// Health check
 app.get("/api/ping", (req, res) => {
-  console.log("Ping received ✅");
+  console.log("Ping received");
   res.json({ ok: true, ts: Date.now() });
 });
 
-// -------------------- Routes --------------------
 const safeUse = (path, router) => {
   if (!router) return;
   if (typeof router === "function" || (router && typeof router.use === "function")) {
     app.use(path, router);
   } else {
-    console.warn(`⚠️ Skipped invalid router at path: ${path}`);
+    console.warn(`Skipped invalid router at path: ${path}`);
   }
 };
 
-// ✅ Main routes
+// Main routes
 safeUse("/api/auth", authRoutes);
 safeUse("/api/posts", postRoutes);
 safeUse("/api/skillcard", skillCardRoutes);
@@ -74,7 +71,7 @@ safeUse("/api/messages", messageRoutes);
 
 // -------------------- Not Found + Error Handling --------------------
 app.use((req, res, next) => {
-  console.log(`❌ 404 Not Found: ${req.originalUrl}`);
+  console.log(`404 Not Found: ${req.originalUrl}`);
   const err = new Error("Not Found");
   err.status = 404;
   next(err);
@@ -108,13 +105,13 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   const userId = socket.user.id;
   onlineUsers.set(userId, socket.id);
-  console.log(`✅ ${userId} connected`);
+  console.log(`${userId} connected`);
   io.emit("onlineUsers", Array.from(onlineUsers.keys()));
 
   socket.on("disconnect", () => {
     onlineUsers.delete(userId);
     io.emit("onlineUsers", Array.from(onlineUsers.keys()));
-    console.log(`❌ ${userId} disconnected`);
+    console.log(`${userId} disconnected`);
   });
 });
 
@@ -123,12 +120,12 @@ const start = async () => {
   try {
     await connectDB();
     server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log("➡️  Test endpoint: http://localhost:5000/api/ping");
-      console.log("🖼️  Uploads served from: http://localhost:5000/uploads/posts/");
+      console.log(`Server running on port ${PORT}`);
+      console.log("Test endpoint: http://localhost:5000/api/ping");
+      console.log("Uploads served from: http://localhost:5000/uploads/posts/");
     });
   } catch (err) {
-    console.error("❌ Failed to start server", err);
+    console.error("Failed to start server", err);
     process.exit(1);
   }
 };

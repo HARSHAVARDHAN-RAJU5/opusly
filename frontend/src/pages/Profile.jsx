@@ -4,14 +4,6 @@ import { Edit3, Trash2, Save, X, Camera, Linkedin, PlusCircle } from "lucide-rea
 import { API } from "../api";
 import toast from "react-hot-toast";
 
-/**
- * Profile page:
- * - Shows "My Internships" for providers and "My Gigs" for students
- * - Fetches offers authored by the current user and filters by kind
- * - Delete confirmation and API deletion
- *
- * This version expects a real authenticated user (no demo user).
- */
 
 function getRuntimeUser() {
   try {

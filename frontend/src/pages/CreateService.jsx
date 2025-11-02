@@ -3,16 +3,7 @@ import React, { useState } from "react";
 import { API } from "../api";
 import toast from "react-hot-toast";
 
-/*
-  Usage:
-   - Put this file at src/pages/CreateService.jsx
-   - Navigate to it as the route you already use for create/gig
-   - It auto-switches form based on role:
-       role === "provider" -> shows Internship form (with stipend, location)
-       otherwise (student or no role) -> shows Gig form (Fiverr-like)
-   - Role is read from localStorage.getItem("role") (same place your app stores it).
-     If you store role elsewhere, pass it in or adapt the role detection.
-*/
+
 
 function CreateGigForm() {
   const [title, setTitle] = useState("");

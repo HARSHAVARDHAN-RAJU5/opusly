@@ -2,7 +2,7 @@
 const Post = require('../models/Post');
 const { calculatePopularity } = require('../utils/popularity');
 
-// ✅ create post (final fixed)
+//  create post (final fixed)
 exports.createPost = async (req, res, next) => {
   try {
     console.log("---- createPost debug ----");
@@ -38,12 +38,12 @@ exports.createPost = async (req, res, next) => {
 
     res.status(201).json({ success: true, post });
   } catch (err) {
-    console.error('❌ createPost failed:', err.message);
+    console.error(' createPost failed:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ✅ get all posts
+//  get all posts
 exports.getPosts = async (req, res, next) => {
   try {
     const posts = await Post.find()
@@ -55,7 +55,7 @@ exports.getPosts = async (req, res, next) => {
   }
 };
 
-// ✅ update post
+//  update post
 exports.updatePost = async (req, res, next) => {
   try {
     const post = await Post.findOneAndUpdate(
@@ -70,7 +70,7 @@ exports.updatePost = async (req, res, next) => {
   }
 };
 
-// ✅ delete post
+//  delete post
 exports.deletePost = async (req, res, next) => {
   try {
     const post = await Post.findOneAndDelete({ _id: req.params.id, author: req.user.id });
@@ -81,7 +81,7 @@ exports.deletePost = async (req, res, next) => {
   }
 };
 
-// ✅ like post
+//  like post
 exports.likePost = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -98,7 +98,7 @@ exports.likePost = async (req, res, next) => {
   }
 };
 
-// ✅ unlike post
+//  unlike post
 exports.unlikePost = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);

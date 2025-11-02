@@ -23,7 +23,7 @@ export default function ChatOverlay({ isOpen, onClose, userId }) {
     });
 
     socketRef.current.on("connect", () => {
-      console.log("✅ Socket connected");
+      console.log(" Socket connected");
       if (userId) socketRef.current.emit("joinChat", userId);
     });
 
@@ -123,7 +123,7 @@ export default function ChatOverlay({ isOpen, onClose, userId }) {
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-2">
             {messages.length === 0 ? (
               <p className="text-gray-400 text-sm text-center mt-4">
-                Say hi 👋 to start chatting!
+                Say hi.. to start chatting!
               </p>
             ) : (
               messages.map((msg, i) => (

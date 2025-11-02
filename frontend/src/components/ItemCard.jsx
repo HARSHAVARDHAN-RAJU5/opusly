@@ -8,8 +8,6 @@ const typesConfig = {
 };
 
 export default function ItemCard({ item, onMessage, onApply }) {
-  // item expected shape: { _id, title, description, providerName, type }
-  // If your backend uses different keys, adjust field names here.
   const type = (item.type || "post").toLowerCase();
   const cfg = typesConfig[type] || typesConfig.post;
 

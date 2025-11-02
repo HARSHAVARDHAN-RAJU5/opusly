@@ -12,7 +12,7 @@ export default function RightChat() {
 
       <div className="flex-1 overflow-y-auto bg-slate-50 p-4 rounded-lg shadow-inner">
         <p className="text-gray-500 text-sm italic">
-          Welcome to Opusly Chat 💬
+          Welcome to Opusly Chat 
         </p>
       </div>
 

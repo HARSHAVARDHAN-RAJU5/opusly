@@ -42,7 +42,7 @@ const upload = multer({
 
 // ---------------- Debug Logs Middleware ----------------
 const debugUploads = (req, res, next) => {
-  console.log("💾 --- POST /api/posts received ---");
+  console.log(" --- POST /api/posts received ---");
   console.log("req.files =", req.files);
   console.log("req.body =", req.body);
   next();
@@ -50,7 +50,7 @@ const debugUploads = (req, res, next) => {
 
 // ---------------- Routes ----------------
 
-// 🩷 Create Post (handles text + up to 6 images)
+//  Create Post (handles text + up to 6 images)
 router.post(
   "/",
   authMiddleware,
@@ -59,16 +59,16 @@ router.post(
   postController.createPost
 );
 
-// 🩷 Get all posts
+//  Get all posts
 router.get("/", authMiddleware, postController.getPosts);
 
-// 🩷 Update a post
+//  Update a post
 router.put("/:id", authMiddleware, postController.updatePost);
 
-// 🩷 Delete a post
+//  Delete a post
 router.delete("/:id", authMiddleware, postController.deletePost);
 
-// 🩷 Like & Unlike
+//  Like & Unlike
 router.post("/:id/like", authMiddleware, postController.likePost);
 router.post("/:id/unlike", authMiddleware, postController.unlikePost);
 

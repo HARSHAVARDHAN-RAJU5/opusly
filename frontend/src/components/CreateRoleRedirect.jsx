@@ -2,15 +2,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-/**
- * Redirects /create to role-specific create pages.
- * It will try, in order:
- * 1) window.__APP_USER__ (if your App sets it)
- * 2) localStorage 'user' (json string)
- * 3) localStorage 'role' (string)
- *
- * This avoids depending on a missing AuthContext.
- */
 export default function CreateRoleRedirect() {
   // try window-cached user (App can set window.__APP_USER__ = user)
   const winUser = typeof window !== "undefined" ? window.__APP_USER__ : null;

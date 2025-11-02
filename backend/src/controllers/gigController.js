@@ -3,7 +3,7 @@ const Gig = require('../models/Gig');
 const User = require('../models/User');
 const SkillCard = require('../models/SkillCard');
 
-// ✅ CREATE GIG
+//  CREATE GIG
 const createGig = async (req, res) => {
   try {
     if (!req.user)
@@ -52,7 +52,7 @@ const createGig = async (req, res) => {
   }
 };
 
-// ✅ GET ALL GIGS
+//  GET ALL GIGS
 const getAllGigs = async (req, res) => {
   try {
     const filter = {};
@@ -69,7 +69,7 @@ const getAllGigs = async (req, res) => {
   }
 };
 
-// ✅ GET SINGLE GIG
+//  GET SINGLE GIG
 const getGigById = async (req, res) => {
   try {
     let query = Gig.findById(req.params.id);
@@ -86,7 +86,7 @@ const getGigById = async (req, res) => {
   }
 };
 
-// ✅ UPDATE GIG
+//  UPDATE GIG
 const updateGig = async (req, res) => {
   try {
     if (!req.user)
@@ -113,7 +113,7 @@ const updateGig = async (req, res) => {
   }
 };
 
-// ✅ DELETE GIG
+//  DELETE GIG
 const deleteGig = async (req, res) => {
   try {
     if (!req.user)
@@ -138,7 +138,7 @@ const deleteGig = async (req, res) => {
   }
 };
 
-// ✅ APPLY TO GIG
+//  APPLY TO GIG
 const applyToGig = async (req, res) => {
   try {
     console.log(
@@ -220,7 +220,7 @@ const applyToGig = async (req, res) => {
   }
 };
 
-// ✅ VIEW APPLICANTS
+//  VIEW APPLICANTS
 const viewApplicants = async (req, res) => {
   try {
     if (!req.user)

@@ -6,7 +6,6 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/auth");
 
-// Helper: create token
 const createToken = (user) => {
   const payload = { id: user._id || user.id };
   return jwt.sign(payload, process.env.JWT_SECRET || "secret", { expiresIn: "30d" });
@@ -23,11 +22,10 @@ router.post("/signup", async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) return res.status(409).json({ message: "Email already registered." });
 
-    const hashed = await bcrypt.hash(password, 10);
     const user = new User({
       name,
       email: email.toLowerCase().trim(),
-      password: hashed,
+      password,
       role: role || "student",
       education,
       college,
@@ -55,21 +53,38 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password required" });
+    }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    if (!user) {
+      console.log("Login failed: user not found");
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ message: "Invalid credentials" });
+    console.log("Stored password hash:", user.password);
+    console.log("Entered password:", password);
+
+    const match = await bcrypt.compare(password, user.password);
+    console.log("bcrypt.compare result:", match);
+
+    if (!match) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const token = createToken(user);
-    const safeUser = { _id: user._id, name: user.name, email: user.email, role: user.role };
+    const safeUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
 
-    return res.json({ success: true, token, user: safeUser });
+    res.json({ success: true, token, user: safeUser });
   } catch (err) {
     console.error("POST /api/auth/login error:", err);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
