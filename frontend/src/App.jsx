@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Auth from "./components/Auth";
 import Sidebar from "./components/Sidebar";
-import { API } from "./api";
+import API from "./api";
 import Dashboard from "./pages/Dashboard";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import MyApplications from "./pages/MyApplications";

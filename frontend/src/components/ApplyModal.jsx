@@ -1,6 +1,6 @@
 // frontend/src/components/ApplyModal.jsx
 import React, { useEffect, useState } from "react";
-import { API } from "../api";
+import API from "../api";
 import toast from "react-hot-toast";
 
 export default function ApplyModal({ gigId, title, onClose, onApplied }) {

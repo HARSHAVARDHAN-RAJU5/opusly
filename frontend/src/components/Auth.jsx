@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { API } from "../api";
+import API from "../api";
 
 export default function Auth({ onAuth }) {
   const [isSignup, setIsSignup] = useState(false);

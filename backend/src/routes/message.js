@@ -3,7 +3,6 @@ const router = express.Router();
 const Message = require("../models/Message");
 const { verifyToken } = require("../middleware/auth");
 
-//  Get recent chats for the logged-in user
 router.get("/recent", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -13,8 +12,6 @@ router.get("/recent", async (req, res) => {
 
     const token = authHeader.split(" ")[1];
     const user = verifyToken(token);
-
-    // Fetch all messages where user is sender or receiver
     const messages = await Message.find({
       $or: [{ sender: user.id }, { receiver: user.id }],
     })
@@ -22,7 +19,6 @@ router.get("/recent", async (req, res) => {
       .populate("sender", "name")
       .populate("receiver", "name");
 
-    // Group by other participant
     const chatsMap = new Map();
 
     messages.forEach((msg) => {
@@ -54,7 +50,7 @@ router.get("/recent", async (req, res) => {
   }
 });
 
-//  Fetch chat history between current user and another
+
 router.get("/:userId", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -84,6 +80,39 @@ router.get("/:userId", async (req, res) => {
       message: "Failed to load chat",
     });
   }
+});
+
+//  Send a new message
+router.post("/", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader)
+      return res.status(401).json({ success: false, message: "No token" });
+
+    const token = authHeader.split(" ")[1];
+    const user = verifyToken(token);
+
+    const { to, text } = req.body;
+
+    if (!to || !text)
+      return res
+        .status(400)
+        .json({ success: false, message: "Recipient and text required" });
+
+    const message = await Message.create({
+      sender: user.id,
+      receiver: to,
+      content: text,
+    });
+
+    return res.status(201).json({ success: true, message });
+  } catch (err) {
+    console.error("Error sending message:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to send message", error: err.message });
+   }
+
 });
 
 module.exports = router;

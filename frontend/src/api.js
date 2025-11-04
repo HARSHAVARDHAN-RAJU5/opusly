@@ -1,4 +1,3 @@
-// src/api.js
 import axios from "axios";
 
 const API = axios.create({
@@ -6,28 +5,42 @@ const API = axios.create({
   timeout: 15000,
 });
 
+// Automatically attach token if available
 API.interceptors.request.use(
-  (cfg) => {
+  (config) => {
     try {
-      cfg = cfg || {};
-      cfg.headers = cfg.headers || {};
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (token) cfg.headers.Authorization = `Bearer ${token}`;
-    } catch (e) {
-      console.warn("api request interceptor error:", e && e.message ? e.message : e);
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer ${token}`,
+        };
+      }
+    } catch (err) {
+      console.warn("Token read error:", err.message);
     }
-    return cfg;
+    return config;
   },
-  (err) => Promise.reject(err)
-);
-
-API.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    console.error("API response error:", err && err.message ? err.message : err);
-    return Promise.reject(err);
+  (error) => {
+    console.error("Request interceptor error:", error.message);
+    return Promise.reject(error);
   }
 );
 
-export { API };
+
+// Global response interceptor (for debugging or auth errors)
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error(
+        `API Error [${error.response.status}]: ${error.response.config.url}`
+      );
+    } else {
+      console.error("Network or CORS error:", error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default API;

@@ -1,7 +1,7 @@
 ﻿// src/pages/Profile.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Edit3, Trash2, Save, X, Camera, Linkedin, PlusCircle } from "lucide-react";
-import { API } from "../api";
+import API from "../api";
 import toast from "react-hot-toast";
 
 

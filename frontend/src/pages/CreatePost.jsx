@@ -1,6 +1,6 @@
 // src/pages/CreatePost.jsx
 import React, { useRef, useState } from "react";
-import { API } from "../api";
+import API from "../api";
 import toast from "react-hot-toast";
 
 export default function CreatePost() {

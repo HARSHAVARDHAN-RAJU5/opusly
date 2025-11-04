@@ -1,6 +1,6 @@
 // frontend/src/pages/MyApplications.jsx
 import React, { useEffect, useState } from "react";
-import { API } from "../api";
+import API from "../api";
 
 export default function MyApplications() {
   const [applications, setApplications] = useState([]);

@@ -1,6 +1,6 @@
 // src/pages/CreateService.jsx
 import React, { useState } from "react";
-import { API } from "../api";
+import API from "../api";
 import toast from "react-hot-toast";
 
 

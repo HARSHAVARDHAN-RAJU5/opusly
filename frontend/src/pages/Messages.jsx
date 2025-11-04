@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { API } from "../api";
+import API from "../api";
 
 export default function Messages() {
   const location = useLocation();
@@ -25,11 +25,23 @@ export default function Messages() {
     }
   }, [toUserId]);
 
-  const handleSend = async () => {
-    if (!text.trim()) return;
-    setMessages([...messages, { sender: "me", text }]);
-    setText("");
-    // optional: send to backend here
+    const handleSend = async () => {
+    if (!messageText.trim()) return;
+
+    try {
+      const res = await API.post("/messages", {
+        to: receiverId,
+        text: messageText,
+      });
+
+      if (res.data.success) {
+        console.log("Message sent:", res.data.message);
+        setMessages((prev) => [...prev, res.data.message]);
+        setMessageText("");
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err.response?.data || err.message);
+    }
   };
 
   return (
@@ -37,7 +49,7 @@ export default function Messages() {
       {/* Left panel */}
       <div className="w-1/3 border-r bg-white p-4 overflow-y-auto">
         <h2 className="text-lg font-semibold text-indigo-600 mb-4">
-          Messages
+          Message
         </h2>
         <p className="text-sm text-gray-500">
           {chatUser
