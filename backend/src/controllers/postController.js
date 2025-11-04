@@ -1,8 +1,9 @@
 // src/controllers/postController.js
 const Post = require('../models/Post');
+const User = require('../models/User');
+const mongoose = require("mongoose");
 const { calculatePopularity } = require('../utils/popularity');
 
-//  create post (final fixed)
 exports.createPost = async (req, res, next) => {
   try {
     console.log("---- createPost debug ----");
@@ -22,10 +23,13 @@ exports.createPost = async (req, res, next) => {
         ? tags
         : [];
 
-    const images = (req.files || []).map((f) => `/uploads/posts/${f.filename}`);
+    const images = (req.files || []).map((f) => `/uploads/${f.filename}`);
+
+    
+    console.log("Creating post by:", req.user);
 
     const post = await Post.create({
-      author: req.user.id,
+      author: new mongoose.Types.ObjectId(req.user.id),
       title: title.trim(),
       content: content.trim(),
       tags: tagArray,
@@ -46,15 +50,55 @@ exports.createPost = async (req, res, next) => {
 //  get all posts
 exports.getPosts = async (req, res, next) => {
   try {
-    const posts = await Post.find()
+    let posts = await Post.find()
       .populate('author', 'name role profilePic')
-      .sort({ createdAt: -1 });
-    res.json(posts);
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const host = `${req.protocol}://${req.get('host')}`;
+    const missingAuthorIds = posts
+      .filter(p => !p.author || !p.author.name)
+      .map(p => (p.author && p.author._id) || p.author)
+      .filter(Boolean);
+
+    let fetchedUsers = {};
+    if (missingAuthorIds.length) {
+      const users = await User.find({ _id: { $in: missingAuthorIds } }).select('name role profilePic').lean();
+      users.forEach(u => {
+        fetchedUsers[String(u._id)] = u;
+      });
+    }
+
+    const fixed = posts.map(p => {
+      if (!p.author || !p.author.name) {
+        const aid = (p.author && (p.author._id || p.author)) || null;
+        if (aid && fetchedUsers[String(aid)]) {
+          p.author = fetchedUsers[String(aid)];
+        } else {
+          p.author = { _id: aid || null, name: 'Unknown' };
+        }
+      }
+      p.postedBy = (p.author && (p.author.name || p.author.email)) || 'Unknown';
+      if (Array.isArray(p.images)) {
+        p.images = p.images.map(img => {
+          if (!img) return img;
+          if (img.startsWith('http://') || img.startsWith('https://')) return img;
+          const cleaned = img.startsWith('/') ? img : `/${img}`;
+          return `${host}${cleaned}`;
+        });
+      } else {
+        p.images = [];
+      }
+
+      return p;
+    });
+
+    console.log("Sending posts (count):", fixed.length);
+    return res.json(fixed);
   } catch (err) {
     next(err);
   }
 };
-
 //  update post
 exports.updatePost = async (req, res, next) => {
   try {

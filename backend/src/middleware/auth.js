@@ -1,6 +1,3 @@
-// backend/src/middleware/auth.js
-// Auth middleware + verifyToken helper (final stable version with debug + role support)
-
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 

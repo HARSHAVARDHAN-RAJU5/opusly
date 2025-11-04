@@ -38,7 +38,6 @@ app.use(
   })
 );
 
-// Serve uploaded images (corrected path)
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // Log every incoming request
@@ -69,7 +68,6 @@ safeUse("/api/skillcard", skillCardRoutes);
 safeUse("/api/gigs", gigRoutes);
 safeUse("/api/messages", messageRoutes);
 
-// -------------------- Not Found + Error Handling --------------------
 app.use((req, res, next) => {
   console.log(`404 Not Found: ${req.originalUrl}`);
   const err = new Error("Not Found");
@@ -78,7 +76,6 @@ app.use((req, res, next) => {
 });
 app.use(errorHandler);
 
-// -------------------- Socket.io Setup --------------------
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -122,7 +119,7 @@ const start = async () => {
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log("Test endpoint: http://localhost:5000/api/ping");
-      console.log("Uploads served from: http://localhost:5000/uploads/posts/");
+      console.log("Uploads served from: http://localhost:5000/uploads/");
     });
   } catch (err) {
     console.error("Failed to start server", err);
