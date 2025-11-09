@@ -139,17 +139,12 @@ function App() {
             )}
           </header>
 
-          {selectedChat && (
-            <div className="mx-8 mt-6 px-4 py-3 rounded-lg bg-pink-50 border border-pink-200 text-pink-700">
-              <strong>Debug Chat Open:</strong> Chatting with{" "}
-              <span className="font-semibold">{selectedChat.name}</span> (id:{" "}
-              {selectedChat.id})
-            </div>
-          )}
-
           <main className="p-8 overflow-y-auto">
             <Routes>
-              <Route path="/" element={<Dashboard onOpenChat={handleOpenChat} />} />
+              <Route
+                path="/"
+                element={<Dashboard onOpenChat={handleOpenChat} user={user} />}
+              />
               <Route path="/provider" element={<ProviderDashboard />} />
               <Route path="/profile" element={<OpuslyProfile />} />
               <Route path="/profile/:id" element={<OpuslyProfile />} />

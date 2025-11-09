@@ -5,7 +5,16 @@ import toast from "react-hot-toast";
 import API from "../api";
 import ApplyModal from "../components/ApplyModal";
 
-export default function Dashboard({ onOpenChat, user }) {
+export default function Dashboard({ onOpenChat, user: passedUser }) {
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      return passedUser || (saved ? JSON.parse(saved) : null);
+    } catch {
+      return passedUser || null;
+    }
+  });
+
   const [feed, setFeed] = useState([]);
   const [skillcards, setSkillcards] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -17,11 +26,10 @@ export default function Dashboard({ onOpenChat, user }) {
 
   const token = localStorage.getItem("token");
   const API_BASE =
-    (import.meta.env &&
-      (import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL)) ||
+    (import.meta.env?.VITE_API_URL || import.meta.env?.REACT_APP_API_URL) ??
     "http://localhost:5000";
 
-  // Utility — image resolver
+  // Helper — image resolver
   const getFirstImageUrl = (post) => {
     if (!post) return null;
     const img =
@@ -98,15 +106,23 @@ export default function Dashboard({ onOpenChat, user }) {
     }
   };
 
+  // Better internship detection
   const isInternship = (item) => {
-    const title = (item.title || item.name || "").toLowerCase();
-    const type = (item.gigType || item.type || item._type || "").toLowerCase();
-    return title.includes("intern") || type.includes("intern");
+    const text = `${item.title || ""} ${item.name || ""} ${item.gigType || ""} ${
+      item.type || ""
+    } ${item.category || ""}`.toLowerCase();
+    return text.includes("intern");
   };
 
   const openApplyModal = (gig) => {
+    console.log("openApplyModal fired:", gig);
     setSelectedGig(gig);
     setShowModal(true);
+  };
+
+  const closeApplyModal = () => {
+    setSelectedGig(null);
+    setShowModal(false);
   };
 
   const handleMessage = (item) => {
@@ -126,7 +142,7 @@ export default function Dashboard({ onOpenChat, user }) {
       item.name ??
       "Chat";
 
-    setChatOpen(true); // hides Quick Actions
+    setChatOpen(true);
 
     if (typeof onOpenChat === "function") {
       onOpenChat({ id: chatId, name });
@@ -154,13 +170,13 @@ export default function Dashboard({ onOpenChat, user }) {
         Dashboard
       </h1>
 
-      {/* Dashboard feed */}
+      {/* Feed */}
       <div className="max-w-4xl mx-auto space-y-4">
         {loading ? (
           <p className="text-gray-500">Loading feed...</p>
         ) : feed.length === 0 ? (
           <p className="text-gray-500">
-            No items yet — posts, gigs and internships will appear here.
+            No items yet — posts, gigs, and internships will appear here.
           </p>
         ) : (
           feed.map((item) => {
@@ -240,28 +256,12 @@ export default function Dashboard({ onOpenChat, user }) {
 
                 <div className="mt-3 flex gap-2">
                   {intern ? (
-                    user &&
-                    (user.role || "").toLowerCase() === "student" &&
-                    String(item.createdBy?._id ?? item.createdBy) !==
-                      String(user._id ?? user.id) ? (
-                      <button
-                        onClick={() => openApplyModal(item)}
-                        className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-                      >
-                        Apply
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toast.error("You can't apply to this internship")
-                        }
-                        className="text-sm bg-gray-200 text-gray-600 px-3 py-1 rounded cursor-not-allowed"
-                        disabled
-                      >
-                        Apply
-                      </button>
-                    )
+                    <button
+                      onClick={() => openApplyModal(item)}
+                      className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
+                    >
+                      Apply
+                    </button>
                   ) : (
                     <button
                       onClick={() => handleMessage(item)}
@@ -277,9 +277,8 @@ export default function Dashboard({ onOpenChat, user }) {
         )}
       </div>
 
-      {/* Right sidebar */}
-      <div className="fixed right-6 top-24 w-80">
-        {/* Hide Quick Actions when chat is open */}
+      {/* Right Sidebar */}
+      <div className="fixed right-6 top-24 w-80 z-10">
         {!chatOpen && (
           <div className="bg-white p-4 rounded shadow mb-4">
             <div className="font-semibold text-indigo-700 mb-2">
@@ -307,30 +306,6 @@ export default function Dashboard({ onOpenChat, user }) {
             </div>
           </div>
         )}
-
-        {/* Your SkillCards */}
-        <div className="bg-white p-4 rounded shadow">
-          <div className="font-semibold text-indigo-700 mb-2">
-            Your SkillCards
-          </div>
-          {loadingSkillcards ? (
-            <p className="text-sm text-gray-500">Loading...</p>
-          ) : skillcards.length === 0 ? (
-            <p className="text-sm text-gray-500">No SkillCards yet</p>
-          ) : (
-            skillcards.map((s) => (
-              <div key={s._id ?? s.id} className="p-2 border rounded mb-2">
-                <div className="font-medium">{s.title ?? s.name}</div>
-                <div className="text-xs text-gray-500">
-                  {s.level ?? s.skillLevel} •{" "}
-                  {Array.isArray(s.skills)
-                    ? s.skills.join(", ")
-                    : s.skills}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       {/* Apply Modal */}
@@ -338,9 +313,9 @@ export default function Dashboard({ onOpenChat, user }) {
         <ApplyModal
           gigId={selectedGig._id ?? selectedGig.id}
           title={selectedGig.title ?? selectedGig.name ?? "Internship"}
-          onClose={() => setShowModal(false)}
+          onClose={closeApplyModal}
           onApplied={async () => {
-            toast.success("Applied successfully 🎉");
+            toast.success("Applied successfully!");
             setShowModal(false);
             setSelectedGig(null);
             await loadAll();

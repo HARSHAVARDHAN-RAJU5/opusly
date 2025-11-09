@@ -10,9 +10,7 @@ export default function ApplyModal({ gigId, title, onClose, onApplied }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // fetch when modal mounts
     fetchSkillcards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchSkillcards() {
@@ -53,7 +51,6 @@ export default function ApplyModal({ gigId, title, onClose, onApplied }) {
     try {
       console.log("[ApplyModal] applying to gig", gigId, "with skillcard", selected);
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      // Send both keys so backend accepts either naming convention
       const body = { skillCardId: selected, skillcardId: selected };
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await API.post(`/gigs/${gigId}/apply`, body, { headers });
@@ -77,7 +74,7 @@ export default function ApplyModal({ gigId, title, onClose, onApplied }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-10">
         <div className="flex justify-between items-center mb-3">
