@@ -17,6 +17,7 @@ const messageRoutes = require("./routes/message");
 const errorHandler = require("./middleware/errorHandler");
 const { verifyToken } = require("./middleware/auth");
 const Message = require("./models/Message");
+//const { migrateApplications } = require("./controllers/gigController");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,7 +61,7 @@ const safeUse = (path, router) => {
     console.warn(`Skipped invalid router at path: ${path}`);
   }
 };
-
+//app.get("/migrate-applications", migrateApplications);
 // Main routes
 safeUse("/api/auth", authRoutes);
 safeUse("/api/posts", postRoutes);

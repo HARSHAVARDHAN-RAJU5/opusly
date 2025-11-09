@@ -57,7 +57,7 @@ export default function ApplyModal({ gigId, title, onClose, onApplied }) {
 
       console.log("[ApplyModal] apply response:", res?.status, res?.data);
       if (res?.data?.success || res?.status === 200 || res?.status === 201) {
-        toast.success("Applied successfully 🎉");
+        toast.success("Applied successfully ");
         onApplied && onApplied();
         onClose && onClose();
       } else {

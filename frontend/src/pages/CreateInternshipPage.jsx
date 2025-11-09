@@ -66,7 +66,7 @@ export default function CreateInternshipPage() {
       });
 
       if (res?.status === 201 || res?.data?.success) {
-        toast.success("Internship posted 🎉");
+        toast.success("Internship posted ");
         navigate("/provider");
       } else {
         toast.error(res?.data?.message || "Failed to create internship");

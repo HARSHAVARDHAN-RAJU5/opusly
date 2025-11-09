@@ -40,7 +40,7 @@ function CreateGigForm() {
       });
 
       if (res?.status === 201 || res?.data?.success) {
-        toast.success("Your gig is live 🎉");
+        toast.success("Your gig is live ");
         setTitle("");
         setAboutService("");
         setSkills("");
@@ -200,7 +200,7 @@ function CreateInternshipForm() {
       });
 
       if (res?.status === 201 || res?.data?.success) {
-        toast.success("Internship posted 🎉");
+        toast.success("Internship posted ");
         setTitle("");
         setDescription("");
         setRequiredSkills("");

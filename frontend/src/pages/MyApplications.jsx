@@ -17,8 +17,7 @@ export default function MyApplications() {
       const res = await API.get("/gigs/applied", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-
-      // backend may return different shapes: array directly or { success, applications } or { applied }
+      console.log("Applied gigs response:", res.data);
       let data = res?.data;
       let apps = [];
 
@@ -49,7 +48,6 @@ export default function MyApplications() {
         <p className="text-gray-500">You haven’t applied to anything yet.</p>
       ) : (
         applications.map((a) => {
-          // application object might be { gig, skillCard, createdAt } or { gigId, gig, skillCardId, skillCard }
           const gig = a.gig ?? a.post ?? a.item ?? (a.gigId ? { title: a.title, _id: a.gigId } : null);
           const skillcard = a.skillCard ?? a.skillcard ?? a.skillCardId ?? a.skillcardId ?? null;
 

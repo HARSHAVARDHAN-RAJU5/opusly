@@ -1,7 +1,7 @@
 ﻿// src/components/Sidebar.jsx
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, Briefcase, User, LogOut, PlusCircle } from "lucide-react";
+import { Home, Briefcase, User, LogOut, PlusCircle, Users } from "lucide-react";
 
 export default function Sidebar({ user, logout }) {
   const navigate = useNavigate();
@@ -14,28 +14,29 @@ export default function Sidebar({ user, logout }) {
     navigate("/login");
   };
 
+  // ---------- MAIN NAV ITEMS ----------
   const menuItems = [
     { name: "Dashboard", path: "/", icon: <Home size={16} /> },
     ...(role === "student"
       ? [{ name: "My Applications", path: "/applications", icon: <Briefcase size={16} /> }]
       : []),
+    ...(role === "provider"
+      ? [{ name: "Applicants", path: "/provider-applicants", icon: <Users size={16} /> }]
+      : []),
     { name: "Profile", path: "/profile", icon: <User size={16} /> },
   ];
 
-  // ------------------ CREATE SECTION ------------------
+  // ---------- CREATE SECTION ----------
   const createItems = [];
 
-  // every role can post
   createItems.push({ name: "Post", path: "/create/post" });
 
   if (role === "provider") {
-    // Providers see Internship
     createItems.push({
       name: "Internship",
       path: "/create/internship",
     });
   } else if (role === "student") {
-    // Students see SkillCard first and Gig second
     createItems.unshift({
       name: "SkillCard",
       path: "/create/skillcard",

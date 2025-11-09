@@ -15,6 +15,7 @@ import CreateInternshipPage from "./pages/CreateInternshipPage";
 import RequireAuth from "./components/RequireAuth";
 import CreateRoleRedirect from "./components/CreateRoleRedirect";
 import CreateSkillCard from "./pages/CreateSkillCard.jsx";
+import ProviderApplicants from "./pages/ProviderApplicants";
 
 
 function App() {
@@ -154,7 +155,7 @@ function App() {
               <Route path="/create/gig" element={<RequireAuth><CreateGigPage /></RequireAuth>} />
               <Route path="/create/internship" element={<RequireAuth requiredRole="provider"><CreateInternshipPage /></RequireAuth>} />
               <Route path="/create/post" element={<CreatePost />} />
-
+              <Route path="/provider-applicants" element={<ProviderApplicants />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

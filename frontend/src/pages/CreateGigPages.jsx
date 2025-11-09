@@ -64,7 +64,7 @@ export default function CreateGigPage() {
       });
 
       if (res?.status === 201 || res?.data?.success) {
-        toast.success("Your gig is live 🎉");
+        toast.success("Your gig is live ");
         // go to dashboard or gig list
         navigate("/");
       } else {

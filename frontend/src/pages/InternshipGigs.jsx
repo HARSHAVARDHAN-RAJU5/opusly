@@ -27,7 +27,7 @@ export default function InternshipGigs() {
 
       const data = await res.json();
       if (data.success) {
-        alert("Applied successfully! 🎉");
+        alert("Applied successfully! ");
       } else {
         alert(data.message || "You’ve already applied, or something went wrong.");
       }

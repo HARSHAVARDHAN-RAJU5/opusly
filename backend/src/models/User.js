@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-// User schema definition
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -51,13 +50,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-//password checking
-// Hash password before saving
 const SALT_ROUNDS = 12;
 
 userSchema.pre('save', async function (next) {
   try {
-    // only hash if password was added/modified
     if (!this.isModified('password')) return next();
 
     const salt = await bcrypt.genSalt(SALT_ROUNDS);
@@ -68,12 +64,11 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// Instance method to compare password during login
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Remove password and __v when converting to JSON (sent to clients)
+
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;

@@ -9,12 +9,14 @@ const {
   deleteGig,
   applyToGig,
   viewApplicants,
+  getAppliedGigs,
+  getAllApplicantsForProvider,
+  //migrateApplications,
 } = require('../controllers/gigController');
 
 const authModule = require('../middleware/auth');
 const router = express.Router();
 
-// --- Resolve auth middleware safely ---
 const authMiddleware =
   typeof authModule === 'function'
     ? authModule
@@ -25,7 +27,7 @@ const authMiddleware =
           .status(500)
           .json({ success: false, message: 'Auth middleware missing' }));
 
-// --- Safe wrapper to avoid undefined controllers ---
+
 const safe = (fn) => (req, res, next) => {
   if (!fn || typeof fn !== 'function') {
     return next(new Error('Missing controller handler'));
@@ -33,16 +35,19 @@ const safe = (fn) => (req, res, next) => {
   return fn(req, res, next);
 };
 
-// ---------- GIG CRUD ----------
-router.post('/', authMiddleware, safe(createGig));      // create gig
-router.get('/', authMiddleware, safe(getAllGigs));      // get all gigs
-router.get('/my', authMiddleware, safe(getMyGigs));     // get gigs created by current user
-router.get('/:id', authMiddleware, safe(getGigById));   // get single gig
-router.put('/:id', authMiddleware, safe(updateGig));    // update gig
-router.delete('/:id', authMiddleware, safe(deleteGig)); // delete gig
+router.post('/', authMiddleware, safe(createGig));      
+router.get('/', authMiddleware, safe(getAllGigs));      
+router.get('/my', authMiddleware, safe(getMyGigs));  
+router.get('/applied', authMiddleware, safe(getAppliedGigs));
+router.get('/all-applicants', authMiddleware, safe(getAllApplicantsForProvider)); 
+router.post('/:id/apply', authMiddleware, safe(applyToGig));
+router.get('/:id/applicants', authMiddleware, safe(viewApplicants)); 
+router.put('/:id', authMiddleware, safe(updateGig));    
+router.delete('/:id', authMiddleware, safe(deleteGig)); 
+router.get('/:id', authMiddleware, safe(getGigById));  
 
-// ---------- APPLICATION ROUTES ----------
-router.post('/:id/apply', authMiddleware, safe(applyToGig));          // student applies to gig
-router.get('/:id/applicants', authMiddleware, safe(viewApplicants));  // provider views applicants
+
+//router.get('/migrate-applications', safe(migrateApplications));
+
 
 module.exports = router;

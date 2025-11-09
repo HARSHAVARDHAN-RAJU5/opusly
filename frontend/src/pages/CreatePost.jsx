@@ -95,7 +95,7 @@ export default function CreatePost() {
       }
 
       if (res?.status === 201 || res?.data?.success) {
-        toast.success("Post created successfully 🎉");
+        toast.success("Post created successfully ");
         setTitle("");
         setContent("");
         setTags("");
