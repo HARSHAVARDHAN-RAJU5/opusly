@@ -1,11 +1,12 @@
-﻿// src/pages/Dashboard.jsx
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import API from "../api";
 import ApplyModal from "../components/ApplyModal";
+import { jwtDecode } from "jwt-decode";
 
 export default function Dashboard({ onOpenChat, user: passedUser }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem("user");
@@ -16,18 +17,16 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
   });
 
   const [feed, setFeed] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedGig, setSelectedGig] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
+  const tokenUserId = token ? jwtDecode(token)?.id : null;
   const API_BASE =
     (import.meta.env?.VITE_API_URL || import.meta.env?.REACT_APP_API_URL) ??
     "http://localhost:5000";
 
-  // Image resolver
   const getFirstImageUrl = (post) => {
     if (!post) return null;
     const img =
@@ -56,32 +55,30 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
       const posts = resPosts?.data?.posts ?? resPosts?.data ?? [];
       const gigs = resGigs?.data?.gigs ?? resGigs?.data ?? [];
 
-      const normalizedPosts = posts.map((p) => ({
-        ...p,
-        _type: "post",
-        createdAt: p.createdAt ?? Date.now(),
-      }));
-
-      const normalizedGigs = gigs.map((g) => ({
-        ...g,
-        _type: (g.gigType ?? g.type ?? "")
-          .toString()
-          .toLowerCase()
-          .includes("intern")
-          ? "internship"
-          : "gig",
-        createdAt: g.createdAt ?? Date.now(),
-      }));
-
-      const merged = [...normalizedPosts, ...normalizedGigs].sort(
+      const normalized = [
+        ...posts.map((p) => ({
+          ...p,
+          _type: "post",
+          createdAt: p.createdAt ?? Date.now(),
+        })),
+        ...gigs.map((g) => ({
+          ...g,
+          _type: (g.gigType ?? g.type ?? "")
+            .toLowerCase()
+            .includes("intern")
+            ? "internship"
+            : "gig",
+          createdAt: g.createdAt ?? Date.now(),
+        })),
+      ].sort(
         (a, b) =>
           (new Date(b.createdAt).getTime() || 0) -
           (new Date(a.createdAt).getTime() || 0)
       );
 
-      setFeed(merged);
+      setFeed(normalized);
     } catch (err) {
-      console.error("Dashboard load error:", err?.response?.data || err.message);
+      console.error("Dashboard load error:", err);
       toast.error("Failed to load dashboard content");
     } finally {
       setLoading(false);
@@ -89,13 +86,26 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
   };
 
   const isInternship = (item) => {
-    const text = `${item.title || ""} ${item.name || ""} ${item.gigType || ""} ${
+    const text = `${item.title || ""} ${item.gigType || ""} ${
       item.type || ""
     } ${item.category || ""}`.toLowerCase();
     return text.includes("intern");
   };
 
+  // ✅ Prevent self-apply
   const openApplyModal = (gig) => {
+    const posterId =
+      gig.createdBy?._id ||
+      gig.provider?._id ||
+      gig.owner?._id ||
+      gig.postedBy?._id ||
+      null;
+
+    if (posterId && posterId === tokenUserId) {
+      toast.error("You can’t apply to your own internship.");
+      return;
+    }
+
     setSelectedGig(gig);
     setShowModal(true);
   };
@@ -105,52 +115,61 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     setShowModal(false);
   };
 
-  // ✅ Message handler fixed to work with message route
+  // ✅ Prevent self-message
   const handleMessage = (item) => {
     try {
-      const chatId =
-        item.createdBy?._id ??
-        item.createdBy ??
-        item.provider?._id ??
-        item.provider ??
-        item.owner?._id ??
-        item.owner ??
-        item._id ??
-        item.id;
+      const poster =
+        item.createdBy || item.provider || item.owner || item.postedBy;
 
-      const name =
-        item.createdBy?.name ??
-        item.provider?.name ??
-        item.owner?.name ??
-        item.title ??
-        item.name ??
-        "Chat";
+      const posterId =
+        poster?._id ||
+        item.createdBy?._id ||
+        item.provider?._id ||
+        item.owner?._id ||
+        item.postedBy?._id;
 
-      setChatOpen(true);
-
-      // if Dashboard is used inside App with onOpenChat prop, open sidebar chat
-      if (typeof onOpenChat === "function") {
-        onOpenChat({ id: chatId, name });
-      } else {
-        // else navigate to full message page route
-        navigate(`/messages?to=${encodeURIComponent(String(chatId))}`);
+      if (posterId && posterId === tokenUserId) {
+        toast.error("You can’t message yourself.");
+        return;
       }
+
+      localStorage.setItem("chatTarget", JSON.stringify(poster));
+
+      const isIntern = isInternship(item);
+      const role = user?.role?.toLowerCase();
+
+      let prefillMsg = "";
+
+      if (isIntern) {
+        if (role === "provider") {
+          prefillMsg = `Hey! You showed interest in the internship "${item.title}". Your SkillCard looks amazing — can we talk further?`;
+        } else if (role === "student") {
+          prefillMsg = `Hi! I'm interested in the internship "${item.title}". Could we discuss it further?`;
+        } else {
+          prefillMsg = `Hello! I'm reaching out regarding your internship "${item.title}".`;
+        }
+      } else {
+        prefillMsg = `Hey! I’m really interested in your gig "${item.title}". Can you share more details?`;
+      }
+
+      localStorage.setItem("prefillMessage", prefillMsg);
+      window.location.reload();
     } catch (err) {
-      console.error("Failed to handle message:", err);
+      console.error("handleMessage error:", err);
+      toast.error("Unable to open message.");
     }
   };
 
   const posterName = (item) => {
     if (!item) return "Unknown";
-    if (typeof item.postedBy === "string" && item.postedBy.trim())
-      return item.postedBy;
-    if (item.createdBy?.name || item.createdBy?.email)
-      return item.createdBy.name || item.createdBy.email;
-    if (item.provider?.name || item.provider?.email)
-      return item.provider.name || item.provider.email;
-    if (item.owner?.name || item.owner?.email)
-      return item.owner.name || item.owner.email;
-    return item.name || item.title || "Unknown";
+    const p =
+      item.postedBy ||
+      item.createdBy ||
+      item.provider ||
+      item.owner ||
+      item.applicant;
+    if (typeof p === "string") return p;
+    return p?.name || p?.email || item.name || "Unknown";
   };
 
   return (
@@ -159,7 +178,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
         Dashboard
       </h1>
 
-      {/* Feed Section */}
       <div className="max-w-4xl mx-auto space-y-4">
         {loading ? (
           <p className="text-gray-500">Loading feed...</p>
@@ -169,12 +187,11 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
           </p>
         ) : (
           feed.map((item) => {
-            const key = item._id ?? item.id ?? JSON.stringify(item);
+            const key = item._id ?? item.id;
             const intern = isInternship(item);
+            const imageUrl = getFirstImageUrl(item);
 
-            // Post type
             if ((item._type ?? "").toLowerCase() === "post") {
-              const imageUrl = getFirstImageUrl(item);
               return (
                 <article
                   key={key}
@@ -200,7 +217,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
               );
             }
 
-            // Gig / Internship card
+            // ✅ Gigs / Internships
             return (
               <article
                 key={key}
@@ -244,58 +261,27 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
                 )}
 
                 <div className="mt-3 flex gap-2">
-                  {intern ? (
+                  {/* ✅ Both Apply & Message for internship */}
+                  {intern && (
                     <button
                       onClick={() => openApplyModal(item)}
                       className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
                     >
                       Apply
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleMessage(item)}
-                      className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-                    >
-                      Message
-                    </button>
                   )}
+                  <button
+                    onClick={() => handleMessage(item)}
+                    className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
+                  >
+                    Message
+                  </button>
                 </div>
               </article>
             );
           })
         )}
-      </div> 
-
-      {/* Right Sidebar - Quick Actions 
-      <div className="fixed right-6 top-24 w-80 z-10">
-        {!chatOpen && (
-          <div className="bg-white p-4 rounded shadow mb-4">
-            <div className="font-semibold text-indigo-700 mb-2">
-              Quick Actions
-            </div>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => navigate("/create/gig")}
-                className="text-sm w-full text-left px-3 py-2 border rounded hover:bg-indigo-50"
-              >
-                Create Gig
-              </button>
-              <button
-                onClick={() => navigate("/create/post")}
-                className="text-sm w-full text-left px-3 py-2 border rounded hover:bg-indigo-50"
-              >
-                Create Post
-              </button>
-              <button
-                onClick={() => navigate("/create/skillcard")}
-                className="text-sm w-full text-left px-3 py-2 border rounded hover:bg-indigo-50"
-              >
-                Create SkillCard
-              </button>
-            </div>
-          </div>
-        )}
-      </div>*/}
+      </div>
 
       {/* Apply Modal */}
       {showModal && selectedGig && (

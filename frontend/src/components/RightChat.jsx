@@ -4,13 +4,11 @@ import { io } from "socket.io-client";
 import { ArrowLeft } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
 
-
-
 export default function RightChat({ token }) {
   const [chats, setChats] = useState([]);
-  const [activeChat, setActiveChat] = useState(null); // active chat
+  const [activeChat, setActiveChat] = useState(null);
   const [messageText, setMessageText] = useState("");
-  const [messages, setMessages] = useState([]); // store chat messages
+  const [messages, setMessages] = useState([]);
   const socketRef = useRef(null);
 
   const tokenUserId = token ? jwtDecode(token)?.id : null;
@@ -29,6 +27,7 @@ export default function RightChat({ token }) {
 
     s.on("newMessage", (msg) => {
       console.log("New message received:", msg);
+
       setChats((prev) => {
         const exists = prev.find((c) => c.id === msg.chatId);
         if (exists) {
@@ -39,15 +38,36 @@ export default function RightChat({ token }) {
         return [{ id: msg.chatId, name: msg.fromName, last: msg.text }, ...prev];
       });
 
-      // If current active chat, also append message
       if (activeChat && msg.chatId === activeChat.id) {
-        const isMine =
-          msg.fromSelf || msg.sender?._id === tokenUserId; // handles both local + server
+        const isMine = msg.fromSelf || msg.sender?._id === tokenUserId;
         const formatted = { ...msg, fromSelf: isMine };
         setMessages((prev) => [...prev, formatted]);
       }
-
     });
+
+    // ✅ auto–open chat when coming from “Message” button
+    const target = localStorage.getItem("chatTarget");
+    if (target) {
+      try {
+        const parsed = JSON.parse(target);
+        if (parsed && parsed._id && parsed.name) {
+          setActiveChat({ id: parsed._id, name: parsed.name });
+
+          // prefill message if it exists (gig/internship auto-text)
+          const prefill = localStorage.getItem("prefillMessage");
+          if (prefill) {
+            setMessageText(prefill);
+            localStorage.removeItem("prefillMessage");
+          }
+
+          // 🔥 instantly load their chat history
+          loadChatHistory(parsed._id);
+        }
+      } catch (err) {
+        console.warn("Failed to parse chatTarget:", err);
+      }
+      localStorage.removeItem("chatTarget");
+    }
 
     return () => {
       s.disconnect();
@@ -55,7 +75,7 @@ export default function RightChat({ token }) {
     };
   }, [token, activeChat]);
 
-  // Fetch chat list
+  // ✅ recent chat list
   const loadRecentChats = async () => {
     try {
       const res = await API.get("/messages/recent", {
@@ -72,56 +92,59 @@ export default function RightChat({ token }) {
     }
   };
 
-  // Fetch messages for selected chat
-  const openChat = async (chat) => {
-    setActiveChat(chat);
+  // ✅ load all messages for a given chat user id
+  const loadChatHistory = async (userId) => {
+    if (!userId) return;
     try {
-      const res = await API.get(`/messages/${chat.id}`, {
+      const res = await API.get(`/messages/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Chat response:", res.data);
-      const msgs = res.data?.messages || [];
-        setMessages(msgs);
-
+      const data = res.data?.messages || [];
+      setMessages(
+        data.map((msg) => ({
+          ...msg,
+          fromSelf: msg.sender?._id === tokenUserId,
+        }))
+      );
     } catch (err) {
-      console.warn("Failed to load chat messages:", err);
+      console.error("Failed to load chat history:", err);
       setMessages([]);
     }
   };
 
-  // Send message
-const handleSend = async () => {
-  if (!activeChat || !messageText.trim()) return;
-  try {
-    const res = await API.post(
-      "/messages",
-      { to: activeChat.id, text: messageText },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  // ✅ open chat manually from list
+  const openChat = async (chat) => {
+    setActiveChat(chat);
+    await loadChatHistory(chat.id);
+  };
 
-    setMessageText("");
+  // ✅ send message
+  const handleSend = async () => {
+    if (!activeChat || !messageText.trim()) return;
+    try {
+      const res = await API.post(
+        "/messages",
+        { to: activeChat.id, text: messageText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // tag the outgoing message
-    const sentMessage = {
-      ...res.data.message,
-      fromSelf: true,
-      sender: { _id: tokenUserId }, // stamp your id so socket can recognise it
-      chatId: activeChat.id,
-    };
+      setMessageText("");
 
-    // update UI immediately
-    setMessages((prev) => [...prev, sentMessage]);
+      const sentMessage = {
+        ...res.data.message,
+        fromSelf: true,
+        sender: { _id: tokenUserId },
+        chatId: activeChat.id,
+      };
 
-    // send through socket
-    if (socketRef.current) socketRef.current.emit("sendMessage", sentMessage);
-  } catch (err) {
-    console.error("Send failed:", err.response?.data || err.message);
-  }
-};
+      setMessages((prev) => [...prev, sentMessage]);
 
+      if (socketRef.current) socketRef.current.emit("sendMessage", sentMessage);
+    } catch (err) {
+      console.error("Send failed:", err.response?.data || err.message);
+    }
+  };
 
-
-  // View: chat list OR active chat
   return (
     <aside className="w-80 border-l border-gray-300 bg-white flex flex-col">
       {/* Header */}
@@ -142,7 +165,6 @@ const handleSend = async () => {
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
         {!activeChat ? (
-          // Chat list
           chats.length === 0 ? (
             <p className="p-3 text-gray-500">No recent messages</p>
           ) : (
@@ -164,7 +186,6 @@ const handleSend = async () => {
             })
           )
         ) : (
-          // Active chat messages
           <div className="flex flex-col p-3 space-y-2">
             {messages.length === 0 ? (
               <p className="text-gray-500 text-sm text-center">
@@ -172,14 +193,14 @@ const handleSend = async () => {
               </p>
             ) : (
               messages.map((m, i) => {
-                const isMine = m.sender?._id === tokenUserId; // identify who sent it
+                const isMine = m.sender?._id === tokenUserId;
                 return (
                   <div
                     key={i}
-                      className={`p-2 rounded-lg max-w-[80%] ${
-                        isMine
-                          ? "ml-auto bg-indigo-600 text-white"
-                          : "bg-gray-200 text-gray-800"
+                    className={`p-2 rounded-lg max-w-[80%] ${
+                      isMine
+                        ? "ml-auto bg-indigo-600 text-white"
+                        : "bg-gray-200 text-gray-800"
                     }`}
                   >
                     {m.content}
