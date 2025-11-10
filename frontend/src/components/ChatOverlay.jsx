@@ -49,7 +49,6 @@ export default function ChatOverlay({ isOpen, onClose, userId }) {
     };
   }, [isOpen, userId, token]);
 
-  // Load chat user + history
   useEffect(() => {
     if (isOpen && userId) {
       (async () => {
@@ -71,7 +70,6 @@ export default function ChatOverlay({ isOpen, onClose, userId }) {
     }
   }, [isOpen, userId, token]);
 
-  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);

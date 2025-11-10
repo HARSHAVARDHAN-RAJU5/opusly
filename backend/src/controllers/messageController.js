@@ -1,6 +1,5 @@
 const Message = require('../models/Message');
 
-// get conversation with a specific user
 exports.getMessages = async (req, res, next) => {
   try {
     const { withUser } = req.params;

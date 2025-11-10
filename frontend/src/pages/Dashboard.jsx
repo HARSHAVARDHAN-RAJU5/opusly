@@ -16,11 +16,9 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
   });
 
   const [feed, setFeed] = useState([]);
-  const [skillcards, setSkillcards] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedGig, setSelectedGig] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [loadingSkillcards, setLoadingSkillcards] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -29,7 +27,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     (import.meta.env?.VITE_API_URL || import.meta.env?.REACT_APP_API_URL) ??
     "http://localhost:5000";
 
-  // Helper — image resolver
+  // Image resolver
   const getFirstImageUrl = (post) => {
     if (!post) return null;
     const img =
@@ -44,7 +42,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
 
   useEffect(() => {
     loadAll();
-    loadSkillcards();
   }, []);
 
   const loadAll = async () => {
@@ -91,22 +88,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     }
   };
 
-  const loadSkillcards = async () => {
-    setLoadingSkillcards(true);
-    try {
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await API.get("/skillcard", { headers });
-      const list = res?.data?.skillcards ?? res?.data ?? [];
-      setSkillcards(Array.isArray(list) ? list : []);
-    } catch (err) {
-      console.warn("Failed to load skillcards:", err.message);
-      setSkillcards([]);
-    } finally {
-      setLoadingSkillcards(false);
-    }
-  };
-
-  // Better internship detection
   const isInternship = (item) => {
     const text = `${item.title || ""} ${item.name || ""} ${item.gigType || ""} ${
       item.type || ""
@@ -115,7 +96,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
   };
 
   const openApplyModal = (gig) => {
-    console.log("openApplyModal fired:", gig);
     setSelectedGig(gig);
     setShowModal(true);
   };
@@ -125,29 +105,38 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     setShowModal(false);
   };
 
+  // ✅ Message handler fixed to work with message route
   const handleMessage = (item) => {
-    const chatId =
-      item.createdBy?._id ??
-      item.createdBy ??
-      item.provider ??
-      item.owner ??
-      item._id ??
-      item.id;
+    try {
+      const chatId =
+        item.createdBy?._id ??
+        item.createdBy ??
+        item.provider?._id ??
+        item.provider ??
+        item.owner?._id ??
+        item.owner ??
+        item._id ??
+        item.id;
 
-    const name =
-      item.createdBy?.name ??
-      item.provider?.name ??
-      item.owner?.name ??
-      item.title ??
-      item.name ??
-      "Chat";
+      const name =
+        item.createdBy?.name ??
+        item.provider?.name ??
+        item.owner?.name ??
+        item.title ??
+        item.name ??
+        "Chat";
 
-    setChatOpen(true);
+      setChatOpen(true);
 
-    if (typeof onOpenChat === "function") {
-      onOpenChat({ id: chatId, name });
-    } else {
-      navigate(`/chat/${encodeURIComponent(String(chatId))}`);
+      // if Dashboard is used inside App with onOpenChat prop, open sidebar chat
+      if (typeof onOpenChat === "function") {
+        onOpenChat({ id: chatId, name });
+      } else {
+        // else navigate to full message page route
+        navigate(`/messages?to=${encodeURIComponent(String(chatId))}`);
+      }
+    } catch (err) {
+      console.error("Failed to handle message:", err);
     }
   };
 
@@ -170,7 +159,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
         Dashboard
       </h1>
 
-      {/* Feed */}
+      {/* Feed Section */}
       <div className="max-w-4xl mx-auto space-y-4">
         {loading ? (
           <p className="text-gray-500">Loading feed...</p>
@@ -183,7 +172,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
             const key = item._id ?? item.id ?? JSON.stringify(item);
             const intern = isInternship(item);
 
-            // Post card
+            // Post type
             if ((item._type ?? "").toLowerCase() === "post") {
               const imageUrl = getFirstImageUrl(item);
               return (
@@ -275,9 +264,9 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
             );
           })
         )}
-      </div>
+      </div> */
 
-      {/* Right Sidebar */}
+      {/* Right Sidebar - Quick Actions 
       <div className="fixed right-6 top-24 w-80 z-10">
         {!chatOpen && (
           <div className="bg-white p-4 rounded shadow mb-4">
@@ -306,7 +295,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
             </div>
           </div>
         )}
-      </div>
+      </div>*/}
 
       {/* Apply Modal */}
       {showModal && selectedGig && (
@@ -319,7 +308,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
             setShowModal(false);
             setSelectedGig(null);
             await loadAll();
-            await loadSkillcards();
           }}
         />
       )}
