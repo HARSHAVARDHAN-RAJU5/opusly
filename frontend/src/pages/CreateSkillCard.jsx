@@ -150,7 +150,7 @@ export default function CreateSkillCard() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="e.g. React + UI"
+                placeholder=""
                 disabled={!canCreateMore() || loading}
                 required
               />
@@ -178,7 +178,7 @@ export default function CreateSkillCard() {
                 value={skillsInput}
                 onChange={(e) => setSkillsInput(e.target.value)}
                 className="w-full border rounded-md p-2 focus:outline-none"
-                placeholder="react, tailwind, figma"
+                placeholder="Skills"
                 disabled={!canCreateMore() || loading}
               />
             </div>

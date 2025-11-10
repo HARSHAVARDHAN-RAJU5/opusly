@@ -125,7 +125,7 @@ export default function CreatePost() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="Short, clear title"
+              placeholder="Title"
               required
             />
           </div>
@@ -138,7 +138,7 @@ export default function CreatePost() {
               onChange={(e) => setContent(e.target.value)}
               rows={5}
               className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="Write your thoughts..."
+              placeholder="Content..."
               required
             />
           </div>
@@ -152,7 +152,7 @@ export default function CreatePost() {
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="react, ui-design, frontend"
+              placeholder="Skills"
             />
           </div>
 

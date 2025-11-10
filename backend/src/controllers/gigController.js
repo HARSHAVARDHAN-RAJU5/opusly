@@ -289,6 +289,7 @@ const getAllApplicantsForProvider = async (req, res) => {
       .populate({
         path: "skillCard",
         select: "title",
+        select: "title level skills", 
       });
 
     return res.json({ applications });

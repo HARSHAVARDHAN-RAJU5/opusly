@@ -91,7 +91,7 @@ export default function CreateGigPage() {
         </div>
 
         <p className="text-sm text-gray-500 mb-6">
-          Share what service you can offer — like designing, photography, or editing — so others can hire you directly.
+          Share what service you can offer.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -99,7 +99,7 @@ export default function CreateGigPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full border rounded-md p-2"
-            placeholder="I will edit your videos professionally"
+            placeholder="Title"
           />
 
           <textarea
@@ -107,14 +107,14 @@ export default function CreateGigPage() {
             onChange={(e) => setAboutService(e.target.value)}
             rows="4"
             className="w-full border rounded-md p-2"
-            placeholder="Explain what you offer and why clients should choose you."
+            placeholder="Content..."
           />
 
           <input
             value={skills}
             onChange={(e) => setSkills(e.target.value)}
             className="w-full border rounded-md p-2"
-            placeholder="e.g. photoshop, lightroom, premiere-pro"
+            placeholder="Skills"
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

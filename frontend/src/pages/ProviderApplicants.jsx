@@ -19,8 +19,9 @@ export default function ProviderApplicants() {
       const res = await API.get("/gigs/all-applicants", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      setApplications(res.data.applications || []);
-      console.log("All applicants response:", res.data);
+      const apps = res.data.applications || [];
+      setApplications(apps);
+      console.log("Applicants loaded:", apps);
     } catch (err) {
       console.error("Failed to load applicants:", err);
       toast.error("Unable to fetch applicants");
@@ -29,8 +30,8 @@ export default function ProviderApplicants() {
     }
   }
 
-  // ✅ Show skill popup
   const openSkillPopup = (application) => {
+    console.log("Selected applicant data:", application);
     setSelectedApplicant(application);
     setShowPopup(true);
   };
@@ -40,7 +41,6 @@ export default function ProviderApplicants() {
     setShowPopup(false);
   };
 
-  // ✅ Prefilled message logic
   const handleMessage = (app) => {
     try {
       const target = app.applicant;
@@ -60,6 +60,19 @@ export default function ProviderApplicants() {
     }
   };
 
+  // safely extract skills no matter how backend sends
+  const extractSkills = (skillCard) => {
+    if (!skillCard) return [];
+
+    // if skillCard itself contains nested skillCard (sometimes happens)
+    const sc = skillCard.skillCard || skillCard;
+
+    if (Array.isArray(sc.skills)) return sc.skills;
+    if (typeof sc.skills === "string")
+      return sc.skills.split(",").map((s) => s.trim());
+    return [];
+  };
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-4 text-indigo-600">
@@ -76,7 +89,6 @@ export default function ProviderApplicants() {
             key={a._id}
             className="bg-white p-4 mb-3 rounded-lg shadow flex justify-between items-center"
           >
-            {/* Left Section */}
             <div>
               <p className="font-semibold text-lg">
                 {a.applicant?.name || "Unknown"}
@@ -91,7 +103,6 @@ export default function ProviderApplicants() {
               )}
             </div>
 
-            {/* Right Section */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => openSkillPopup(a)}
@@ -115,7 +126,6 @@ export default function ProviderApplicants() {
         ))
       )}
 
-      {/* SkillCard Popup */}
       {showPopup && selectedApplicant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-96 relative">
@@ -127,16 +137,38 @@ export default function ProviderApplicants() {
               <strong>Applied for:</strong>{" "}
               {selectedApplicant.gig?.title || "Untitled gig"}
             </p>
+
             <p className="text-gray-700 mb-2">
               <strong>Skill:</strong>{" "}
-              {selectedApplicant.skillCard?.title || "Frontend Developer"}
-            </p>
-            <p className="text-gray-600 text-sm mb-4">
-              {selectedApplicant.skillCard?.description ||
-                "No additional details provided."}
+              {selectedApplicant.skillCard?.title || "No title"}
             </p>
 
-            <div className="flex justify-end gap-2 mt-4">
+            {/* Show extracted skills */}
+            {(() => {
+              const skills = extractSkills(selectedApplicant.skillCard);
+              console.log("Extracted skills:", skills);
+              return skills.length > 0 ? (
+                <div className="mt-2">
+                  <p className="font-medium text-gray-700 text-sm mb-1">
+                    Skills used:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm mt-2">No skills listed.</p>
+              );
+            })()}
+
+            <div className="flex justify-end gap-2 mt-5">
               <button
                 onClick={() => handleMessage(selectedApplicant)}
                 className="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 text-sm"
