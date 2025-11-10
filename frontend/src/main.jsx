@@ -5,15 +5,13 @@ import App from "./App";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        {/* All app routes handled inside App */}
-        <Route path="/*" element={<App />} />
+  <BrowserRouter>
+    <Routes>
+      {/* All app routes handled inside App */}
+      <Route path="/*" element={<App />} />
 
-        {/* Fallback redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  </React.StrictMode>
+      {/* Fallback redirect */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  </BrowserRouter>
 );

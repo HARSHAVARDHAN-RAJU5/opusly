@@ -61,7 +61,6 @@ export default function OpuslyProfile() {
         }
 
         if (!me) {
-          // not logged in: show message (no demo user)
           setUser(null);
           setEditableUser(null);
           setOffers([]);
@@ -76,7 +75,6 @@ export default function OpuslyProfile() {
         const uid = me._id ?? me.id;
         const tokenHeaders = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
-        // Attempts to query backend in different shapes
         const attempts = [
           { label: "all", fn: () => API.get("/gigs", tokenHeaders) },
           { label: "ownerQuery", fn: () => API.get("/gigs", { params: { owner: uid }, ...tokenHeaders }) },
@@ -97,7 +95,6 @@ export default function OpuslyProfile() {
 
         const extractOwnerId = (item) => {
           if (!item) return null;
-          // try many common owner fields
           return (
             item.owner?._id ??
             item.owner ??
@@ -132,11 +129,9 @@ export default function OpuslyProfile() {
             }
           } catch (err) {
             console.warn(`[Profile] attempt "${a.label}" failed:`, err?.message || err);
-            // continue to next attempt
           }
         }
 
-        // final fallback: fetch all and aggressively match
         if (!foundOffers.length) {
           try {
             const resAll = await API.get("/gigs", tokenHeaders);
@@ -162,7 +157,6 @@ export default function OpuslyProfile() {
 
         setOffers(foundOffers || []);
 
-        // posts (simple fetch + owner filter)
         try {
           const postsRes = await API.get("/posts", tokenHeaders);
           const postsArr = Array.isArray(postsRes?.data) ? postsRes.data : Array.isArray(postsRes?.data?.data) ? postsRes.data.data : [];
@@ -193,10 +187,7 @@ export default function OpuslyProfile() {
     };
 
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Editable user helpers
   const handleChange = (field, value) => setEditableUser((s) => ({ ...s, [field]: value }));
   const toggleEdit = () => {
     setEditMode((s) => !s);
@@ -239,7 +230,6 @@ export default function OpuslyProfile() {
     }
   };
 
-  // Offers: delete/edit
   const handleDeleteOffer = async (offer) => {
     const id = offer._id ?? offer.id;
     if (!window.confirm("Are you sure? This will permanently delete the offer.")) return;

@@ -17,7 +17,6 @@ const messageRoutes = require("./routes/message");
 const errorHandler = require("./middleware/errorHandler");
 const { verifyToken } = require("./middleware/auth");
 const Message = require("./models/Message");
-//const { migrateApplications } = require("./controllers/gigController");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,13 +40,11 @@ app.use(
 
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
-// Log every incoming request
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} [REQ] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Health check
 app.get("/api/ping", (req, res) => {
   console.log("Ping received");
   res.json({ ok: true, ts: Date.now() });
@@ -61,8 +58,7 @@ const safeUse = (path, router) => {
     console.warn(`Skipped invalid router at path: ${path}`);
   }
 };
-//app.get("/migrate-applications", migrateApplications);
-// Main routes
+
 safeUse("/api/auth", authRoutes);
 safeUse("/api/posts", postRoutes);
 safeUse("/api/skillcard", skillCardRoutes);

@@ -22,6 +22,7 @@ export default function Auth({ onAuth }) {
       const res = await API.post(route, form);
       const token = res.data?.token;
       if (token) {
+        localStorage.setItem("token", token);
         onAuth(token);
       } else {
         alert(res.data?.message || "Authentication failed");
@@ -141,7 +142,7 @@ export default function Auth({ onAuth }) {
       {!isSignup && (
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 mb-2">
-            Boost your popularity score by connecting with others ✨
+            Boost your popularity score by connecting with others 
           </p>
           <button
             onClick={() => alert("Redirecting to your chat...")}

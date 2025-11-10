@@ -264,7 +264,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
             );
           })
         )}
-      </div> */
+      </div> 
 
       {/* Right Sidebar - Quick Actions 
       <div className="fixed right-6 top-24 w-80 z-10">
