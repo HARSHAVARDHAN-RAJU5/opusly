@@ -48,11 +48,13 @@ export default function Sidebar({ user, logout }) {
   }
 
   return (
-    <div className="w-40 h-screen bg-white border-r flex flex-col justify-between">
+    // <div className="w-56 h-screen bg-white border-r flex flex-col justify-between">
+    <div className="fixed top-0 left-0 h-full w-56 bg-white border-r border-gray-200 border-t-0 flex flex-col justify-between z-30">
+
       {/* ---------- TOP SECTION ---------- */}
       <div>
         <div className="text-xl font-bold text-indigo-600 p-4 tracking-tight">
-          Opusly
+         Opsuly
         </div>
         <p className="text-xs text-gray-400 px-4 mb-2 capitalize">
           {role || "guest"}

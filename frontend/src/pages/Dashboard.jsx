@@ -92,7 +92,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     return text.includes("intern");
   };
 
-  // ✅ Prevent self-apply
   const openApplyModal = (gig) => {
     const posterId =
       gig.createdBy?._id ||
@@ -115,7 +114,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     setShowModal(false);
   };
 
-  // ✅ Prevent self-message
   const handleMessage = (item) => {
     try {
       const poster =
@@ -172,13 +170,16 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     return p?.name || p?.email || item.name || "Unknown";
   };
 
+  // ✅ FINAL CLEAN RENDER
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <h1 className="text-2xl font-semibold text-indigo-600 mb-6">
-        Dashboard
-      </h1>
+    <div className="min-h-screen bg-gray-100 m-0 p-0">
+      <div className="px-6 pt-6 pb-2">
+        <h1 className="text-2xl font-semibold text-indigo-600 mb-6">
+          Dashboard
+        </h1>
+      </div>
 
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4 pb-10">
         {loading ? (
           <p className="text-gray-500">Loading feed...</p>
         ) : feed.length === 0 ? (
@@ -217,7 +218,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
               );
             }
 
-            // ✅ Gigs / Internships
             return (
               <article
                 key={key}
@@ -261,7 +261,6 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
                 )}
 
                 <div className="mt-3 flex gap-2">
-                  {/* ✅ Both Apply & Message for internship */}
                   {intern && (
                     <button
                       onClick={() => openApplyModal(item)}

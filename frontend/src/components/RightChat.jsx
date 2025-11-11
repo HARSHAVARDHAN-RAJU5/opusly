@@ -145,93 +145,93 @@ export default function RightChat({ token }) {
     }
   };
 
-  return (
-    <aside className="w-80 border-l border-gray-300 bg-white flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center">
-        {activeChat ? (
-          <button
-            onClick={() => setActiveChat(null)}
-            className="mr-2 text-gray-500 hover:text-indigo-600"
-          >
-            <ArrowLeft size={20} />
-          </button>
-        ) : null}
-        <h2 className="text-lg font-semibold text-indigo-600">
-          {activeChat ? activeChat.name : "Messages"}
-        </h2>
-      </div>
+return (
+  <aside className="fixed top-0 right-0 h-screen w-72 bg-white border-l border-gray-200 flex flex-col z-30">
+    {/* Header */}
+    <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+      {activeChat ? (
+        <button
+          onClick={() => setActiveChat(null)}
+          className="text-gray-500 hover:text-indigo-600"
+        >
+          <ArrowLeft size={20} />
+        </button>
+      ) : null}
+      <h2 className="text-lg font-semibold text-indigo-600 flex-1 text-center">
+        {activeChat ? activeChat.name : "Messages"}
+      </h2>
+    </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto">
-        {!activeChat ? (
-          chats.length === 0 ? (
-            <p className="p-3 text-gray-500">No recent messages</p>
+    {/* Body */}
+    <div className="flex-1 overflow-y-auto">
+      {!activeChat ? (
+        chats.length === 0 ? (
+          <p className="p-3 text-gray-500">No recent messages</p>
+        ) : (
+          chats.map((c, idx) => {
+            const chatId = String(c.id ?? c._id ?? idx);
+            const chatName = c.name ?? c.fromName ?? chatId;
+            return (
+              <div
+                key={chatId}
+                onClick={() => openChat({ id: chatId, name: chatName })}
+                className="p-3 cursor-pointer hover:bg-indigo-50 transition border-b border-gray-100"
+              >
+                <p className="font-medium">{chatName}</p>
+                <p className="text-gray-500 text-sm truncate">
+                  {c.last ?? c.content ?? ""}
+                </p>
+              </div>
+            );
+          })
+        )
+      ) : (
+        <div className="flex flex-col p-3 space-y-2">
+          {messages.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center">
+              No messages yet
+            </p>
           ) : (
-            chats.map((c, idx) => {
-              const chatId = String(c.id ?? c._id ?? idx);
-              const chatName = c.name ?? c.fromName ?? chatId;
+            messages.map((m, i) => {
+              const isMine = m.sender?._id === tokenUserId;
               return (
                 <div
-                  key={chatId}
-                  onClick={() => openChat({ id: chatId, name: chatName })}
-                  className="p-3 cursor-pointer hover:bg-indigo-50 transition border-b border-gray-100"
+                  key={i}
+                  className={`p-2 rounded-lg max-w-[80%] ${
+                    isMine
+                      ? "ml-auto bg-indigo-600 text-white"
+                      : "bg-gray-200 text-gray-800"
+                  }`}
                 >
-                  <p className="font-medium">{chatName}</p>
-                  <p className="text-gray-500 text-sm truncate">
-                    {c.last ?? c.content ?? ""}
-                  </p>
+                  {m.content}
                 </div>
               );
             })
-          )
-        ) : (
-          <div className="flex flex-col p-3 space-y-2">
-            {messages.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center">
-                No messages yet
-              </p>
-            ) : (
-              messages.map((m, i) => {
-                const isMine = m.sender?._id === tokenUserId;
-                return (
-                  <div
-                    key={i}
-                    className={`p-2 rounded-lg max-w-[80%] ${
-                      isMine
-                        ? "ml-auto bg-indigo-600 text-white"
-                        : "bg-gray-200 text-gray-800"
-                    }`}
-                  >
-                    {m.content}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      {activeChat && (
-        <div className="p-3 border-t border-gray-200">
-          <div className="flex">
-            <input
-              type="text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 border border-gray-300 rounded-l-md p-2 text-sm focus:outline-none"
-            />
-            <button
-              onClick={handleSend}
-              className="bg-indigo-600 text-white px-4 rounded-r-md text-sm hover:bg-indigo-700"
-            >
-              Send
-            </button>
-          </div>
+          )}
         </div>
       )}
-    </aside>
-  );
+    </div>
+
+    {/* Input */}
+    {activeChat && (
+      <div className="p-3 border-t border-gray-200 bg-white">
+        <div className="flex">
+          <input
+            type="text"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 border border-gray-300 rounded-l-md p-2 text-sm focus:outline-none"
+          />
+          <button
+            onClick={handleSend}
+            className="bg-indigo-600 text-white px-4 rounded-r-md text-sm hover:bg-indigo-700"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    )}
+  </aside>
+);
 }
