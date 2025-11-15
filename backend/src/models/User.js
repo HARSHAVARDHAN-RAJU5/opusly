@@ -3,49 +3,31 @@ const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      index: true,
-    },
-    password: {
-      type: String,
-      required: true,
-      minlength: 8,
-    },
-    role: {
-      type: String,
-      enum: ['student', 'provider'],
-      default: 'student',
-    },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, index: true },
+    password: { type: String, required: true, minlength: 8 },
+    role: { type: String, enum: ['student', 'provider'], default: 'student' },
+
     bio: String,
+    linkedin: String, 
     profilePic: String,
+
     education: [
       {
-        degree: String,
         institution: String,
-        startYear: Number,
-        endYear: Number,
+        degree: String,
+        from: String,  
+        to: String,   
+        pursuing: { type: Boolean, default: false },
       },
     ],
+
+    skills: [String],
     jobTitle: String,
     links: [String],
-    visibility: {
-      type: String,
-      enum: ['public', 'private'],
-      default: 'public',
-    },
-    popularityScore: {
-      type: Number,
-      default: 0,
-    },
+
+    visibility: { type: String, enum: ['public', 'private'], default: 'public' },
+    popularityScore: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -55,7 +37,6 @@ const SALT_ROUNDS = 12;
 userSchema.pre('save', async function (next) {
   try {
     if (!this.isModified('password')) return next();
-
     const salt = await bcrypt.genSalt(SALT_ROUNDS);
     this.password = await bcrypt.hash(this.password, salt);
     return next();
@@ -68,7 +49,6 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
@@ -76,8 +56,5 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-// Export model
 const User = mongoose.model('User', userSchema);
 module.exports = User;
-
-

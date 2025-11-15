@@ -13,8 +13,6 @@ export default function Sidebar({ user, logout }) {
     localStorage.removeItem("role");
     navigate("/login");
   };
-
-  // ---------- MAIN NAV ITEMS ----------
   const menuItems = [
     { name: "Dashboard", path: "/", icon: <Home size={16} /> },
     ...(role === "student"
@@ -48,19 +46,15 @@ export default function Sidebar({ user, logout }) {
   }
 
   return (
-    // <div className="w-56 h-screen bg-white border-r flex flex-col justify-between">
     <div className="fixed top-0 left-0 h-full w-56 bg-white border-r border-gray-200 border-t-0 flex flex-col justify-between z-30">
 
-      {/* ---------- TOP SECTION ---------- */}
       <div>
         <div className="text-xl font-bold text-indigo-600 p-4 tracking-tight">
-         Opsuly
+         
         </div>
         <p className="text-xs text-gray-400 px-4 mb-2 capitalize">
           {role || "guest"}
         </p>
-
-        {/* ---------- MAIN NAVIGATION ---------- */}
         <nav className="flex flex-col gap-1">
           {menuItems.map((item) => (
             <NavLink
@@ -80,7 +74,6 @@ export default function Sidebar({ user, logout }) {
           ))}
         </nav>
 
-        {/* ---------- CREATE SECTION ---------- */}
         <div className="mt-4 px-2">
           <div className="flex items-center gap-1 text-gray-400 text-[11px] uppercase tracking-wide px-2 mb-1">
             <PlusCircle size={12} />
@@ -106,8 +99,6 @@ export default function Sidebar({ user, logout }) {
           </div>
         </div>
       </div>
-
-      {/* ---------- LOGOUT BUTTON ---------- */}
       <button
         onClick={handleLogout}
         className="flex items-center justify-center gap-1.5 m-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm"

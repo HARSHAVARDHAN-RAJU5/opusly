@@ -107,4 +107,30 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /api/auth/me — update profile info
+router.put("/me", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId || req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    // Pick only allowed editable fields
+    const allowed = ["name", "bio", "linkedin", "education", "skills", "profilePic"];
+    const updates = {};
+    allowed.forEach((key) => {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    });
+
+    const updated = await User.findByIdAndUpdate(userId, updates, { new: true })
+      .select("-password -__v")
+      .lean();
+
+    if (!updated) return res.status(404).json({ message: "User not found" });
+
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    console.error("PUT /api/auth/me error:", err);
+    res.status(500).json({ message: "Server error while updating profile" });
+  }
+});
+
 module.exports = router;

@@ -10,20 +10,16 @@ async function calculatePopularity(userId) {
 
   let score = 0;
 
-  // posts → likes count
   posts.forEach((p) => {
     score += p.likes.length;
   });
 
-  // gigs → applicants count
   gigs.forEach((g) => {
     score += g.applicants.length;
   });
 
-  // skills → each skill adds +1
   score += skills.length;
 
-  // save to user
   await User.findByIdAndUpdate(userId, { popularityScore: score });
 
   return score;

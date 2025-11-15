@@ -215,20 +215,46 @@ export default function OpuslyProfile() {
   const addSkill = () => setEditableUser((s) => ({ ...s, skills: [...(s?.skills || []), ""] }));
   const removeSkill = (index) => setEditableUser((s) => ({ ...s, skills: (s?.skills || []).filter((_, i) => i !== index) }));
 
-  const handleSaveProfile = async () => {
-    setUser(editableUser);
-    setEditMode(false);
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await API.put("/auth/me", editableUser, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-      }
-      try { localStorage.setItem("user", JSON.stringify(editableUser)); } catch {}
-      toast.success("Profile saved");
-    } catch {
-      toast.success("Profile saved locally");
+const handleSaveProfile = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const payload = {
+      name: editableUser.name,
+      bio: editableUser.bio,
+      linkedin: editableUser.linkedin,
+      profilePic: editableUser.profilePic,
+      education: (editableUser.education || []).map((edu) => ({
+        institution: edu.institution || "",
+        degree: edu.degree || "",
+        from: edu.from || "",
+        to: edu.pursuing ? "" : edu.to || "",
+        pursuing: !!edu.pursuing,
+      })),
+      skills: editableUser.skills || [],
+    };
+
+    const res = await API.put("/auth/me", payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.data?.success) {
+      const updated = res.data.user;
+      setUser(updated);
+      setEditableUser(updated);
+      localStorage.setItem("user", JSON.stringify(updated));
+      toast.success("Profile saved successfully!");
+    } else {
+      toast.error("Failed to save profile");
     }
-  };
+  } catch (err) {
+    console.error("Profile save failed:", err);
+    toast.error("Couldn't save profile");
+  } finally {
+    setEditMode(false);
+  }
+};
+
 
   const handleDeleteOffer = async (offer) => {
     const id = offer._id ?? offer.id;
