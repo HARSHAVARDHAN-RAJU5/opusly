@@ -11,6 +11,7 @@ const {
   viewApplicants,
   getAppliedGigs,
   getAllApplicantsForProvider,
+  updateUserPopularity
   //migrateApplications,
 } = require('../controllers/gigController');
 
@@ -44,7 +45,10 @@ router.post('/:id/apply', authMiddleware, safe(applyToGig));
 router.get('/:id/applicants', authMiddleware, safe(viewApplicants)); 
 router.put('/:id', authMiddleware, safe(updateGig));    
 router.delete('/:id', authMiddleware, safe(deleteGig)); 
-router.get('/:id', authMiddleware, safe(getGigById));  
+router.get('/:id', authMiddleware, safe(getGigById)); 
+router.get('/popularity/:id', authMiddleware, safe(getUserPopularity));
+
+
 
 
 //router.get('/migrate-applications', safe(migrateApplications));

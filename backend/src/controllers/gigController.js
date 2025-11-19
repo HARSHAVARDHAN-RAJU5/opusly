@@ -3,7 +3,7 @@ const Gig = require('../models/Gig');
 const User = require('../models/User');
 const SkillCard = require('../models/SkillCard');
 const Application = require("../models/Application");
-
+const { calculatePopularity } = require('../utils/calculatePopularity');
 
 const createGig = async (req, res) => {
   try {
@@ -298,6 +298,29 @@ const getAllApplicantsForProvider = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+const getUserPopularity = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId).select("name email popularityScore");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const score = await calculatePopularity(userId);
+
+    return res.json({
+      success: true,
+      user,
+      updatedPopularityScore: score,
+    });
+  } catch (err) {
+    console.error("Error in getUserPopularity:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 /* const migrateApplications = async (req, res) => {
   try {
     const gigs = await Gig.find().populate("applicants");
@@ -336,5 +359,6 @@ module.exports = {
   viewApplicants,
   getAppliedGigs,
   getAllApplicantsForProvider,
+  updateUserPopularity
   //migrateApplications,
 };

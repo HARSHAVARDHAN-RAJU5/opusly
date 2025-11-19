@@ -1,5 +1,4 @@
 ﻿module.exports = {
-  // include both purge and content to cover v3/v4 differences
   purge: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   safelist: [
