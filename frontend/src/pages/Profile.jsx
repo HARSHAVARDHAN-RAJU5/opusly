@@ -391,7 +391,7 @@ const handleSaveProfile = async () => {
                 )}
                 <p className="text-sm text-gray-500">{user.email}</p>
                 <p className="text-sm text-indigo-600 font-medium capitalize">{user.role}</p>
-                <p className="text-xs text-gray-600 mt-2">Popularity: <span className="font-semibold text-indigo-500">{user.popularity ?? 0}</span></p>
+                <p className="text-xs text-gray-600 mt-2">Popularity: <span className="font-semibold text-indigo-500">{user.popularityScore ?? 0}</span></p>
               </div>
 
               <div className="flex flex-col items-end gap-2">

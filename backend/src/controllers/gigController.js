@@ -3,7 +3,7 @@ const Gig = require('../models/Gig');
 const User = require('../models/User');
 const SkillCard = require('../models/SkillCard');
 const Application = require("../models/Application");
-const { calculatePopularity } = require('../utils/calculatePopularity');
+const { popularity } = require('../utils/popularity.js');
 
 const createGig = async (req, res) => {
   try {
@@ -308,7 +308,7 @@ const getUserPopularity = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const score = await calculatePopularity(userId);
+    const score = await popularity(userId);
 
     return res.json({
       success: true,
@@ -359,6 +359,6 @@ module.exports = {
   viewApplicants,
   getAppliedGigs,
   getAllApplicantsForProvider,
-  updateUserPopularity
+  popularity,
   //migrateApplications,
 };

@@ -9,15 +9,15 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['student', 'provider'], default: 'student' },
 
     bio: String,
-    linkedin: String, 
+    linkedin: String,
     profilePic: String,
 
     education: [
       {
         institution: String,
         degree: String,
-        from: String,  
-        to: String,   
+        from: String,
+        to: String,
         pursuing: { type: Boolean, default: false },
       },
     ],
@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema(
     links: [String],
 
     visibility: { type: String, enum: ['public', 'private'], default: 'public' },
+
+    // IMPORTANT
     popularityScore: { type: Number, default: 0 },
   },
   { timestamps: true }
@@ -51,8 +53,12 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
+
   delete obj.password;
   delete obj.__v;
+
+  obj.popularity = obj.popularityScore ?? 0;
+
   return obj;
 };
 

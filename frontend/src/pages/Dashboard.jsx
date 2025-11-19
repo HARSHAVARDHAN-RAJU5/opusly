@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import API from "../api";
 import ApplyModal from "../components/ApplyModal";
 import { jwtDecode } from "jwt-decode";
+import FeedItem from "../components/FeedItem";
 
 export default function Dashboard({ onOpenChat, user: passedUser }) {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
 
   const token = localStorage.getItem("token");
   const tokenUserId = token ? jwtDecode(token)?.id : null;
+
   const API_BASE =
     (import.meta.env?.VITE_API_URL || import.meta.env?.REACT_APP_API_URL) ??
     "http://localhost:5000";
@@ -34,8 +36,10 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
       (Array.isArray(post.images) && post.images[0]) ||
       post.photo ||
       (Array.isArray(post.photos) && post.photos[0]);
+
     if (!img) return null;
     if (typeof img === "string" && img.startsWith("http")) return img;
+
     return `${API_BASE}/${String(img).replace(/^\/+/, "")}`;
   };
 
@@ -52,8 +56,8 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
         API.get("/gigs", { headers }),
       ]);
 
-      const posts = resPosts?.data?.posts ?? resPosts?.data ?? [];
-      const gigs = resGigs?.data?.gigs ?? resGigs?.data ?? [];
+      const posts = resPosts.data.posts ?? resPosts.data ?? [];
+      const gigs = resGigs.data.gigs ?? resGigs.data ?? [];
 
       const normalized = [
         ...posts.map((p) => ({
@@ -63,11 +67,10 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
         })),
         ...gigs.map((g) => ({
           ...g,
-          _type: (g.gigType ?? g.type ?? "")
-            .toLowerCase()
-            .includes("intern")
-            ? "internship"
-            : "gig",
+          _type:
+            (g.gigType ?? g.type ?? "").toLowerCase().includes("intern")
+              ? "internship"
+              : "gig",
           createdAt: g.createdAt ?? Date.now(),
         })),
       ].sort(
@@ -136,41 +139,45 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
       const isIntern = isInternship(item);
       const role = user?.role?.toLowerCase();
 
-      let prefillMsg = "";
+      let msg = "";
 
       if (isIntern) {
-        if (role === "provider") {
-          prefillMsg = `Hey! You showed interest in the internship "${item.title}". Your SkillCard looks amazing — can we talk further?`;
-        } else if (role === "student") {
-          prefillMsg = `Hi! I'm interested in the internship "${item.title}". Could we discuss it further?`;
-        } else {
-          prefillMsg = `Hello! I'm reaching out regarding your internship "${item.title}".`;
-        }
+        msg =
+          role === "provider"
+            ? `Hey! You showed interest in "${item.title}". Can we talk?`
+            : `Hi! I'm interested in "${item.title}". Can we discuss further?`;
       } else {
-        prefillMsg = `Hey! I’m really interested in your gig "${item.title}". Can you share more details?`;
+        msg = `Hey! I'm interested in your gig "${item.title}".`;
       }
 
-      localStorage.setItem("prefillMessage", prefillMsg);
+      localStorage.setItem("prefillMessage", msg);
       window.location.reload();
     } catch (err) {
-      console.error("handleMessage error:", err);
       toast.error("Unable to open message.");
     }
   };
 
+  const handlePopularity = async (item) => {
+    try {
+      const res = await API.get(`/gigs/popularity/${item._id}`);
+      toast.success(`Popularity updated: ${res.data.score}`);
+    } catch (err) {
+      toast.error("Failed to update popularity.");
+    }
+  };
+
   const posterName = (item) => {
-    if (!item) return "Unknown";
     const p =
       item.postedBy ||
       item.createdBy ||
       item.provider ||
       item.owner ||
       item.applicant;
+
     if (typeof p === "string") return p;
-    return p?.name || p?.email || item.name || "Unknown";
+    return p?.name || p?.email || "Unknown";
   };
 
-  // ✅ FINAL CLEAN RENDER
   return (
     <div className="min-h-screen bg-gray-100 m-0 p-0">
       <div className="px-6 pt-6 pb-2">
@@ -187,111 +194,32 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
             No items yet — posts, gigs, and internships will appear here.
           </p>
         ) : (
-          feed.map((item) => {
-            const key = item._id ?? item.id;
-            const intern = isInternship(item);
-            const imageUrl = getFirstImageUrl(item);
-
-            if ((item._type ?? "").toLowerCase() === "post") {
-              return (
-                <article
-                  key={key}
-                  className="bg-white rounded-lg shadow p-4 hover:shadow-md transition"
-                >
-                  <h2 className="font-semibold text-indigo-700">
-                    {item.title ?? "Post"}
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    Posted by {posterName(item)}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {item.content ?? item.description}
-                  </p>
-                  {imageUrl && (
-                    <img
-                      src={imageUrl}
-                      alt="post"
-                      className="mt-3 w-full max-h-80 object-cover rounded-lg border"
-                    />
-                  )}
-                </article>
-              );
-            }
-
-            return (
-              <article
-                key={key}
-                className="bg-white rounded-lg shadow p-4 hover:shadow-md transition"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="font-semibold text-indigo-700">
-                      {item.title ?? item.name}
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      Posted by {posterName(item)}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      intern
-                        ? "text-green-700 bg-green-50"
-                        : "text-indigo-600 bg-indigo-50"
-                    }`}
-                  >
-                    {intern ? "Internship" : "Gig"}
-                  </span>
-                </div>
-
-                <p className="text-sm text-gray-600 mt-2">
-                  {item.content ?? item.description}
-                </p>
-
-                {Array.isArray(item.skills) && item.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {item.skills.map((s, i) => (
-                      <span
-                        key={i}
-                        className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-3 flex gap-2">
-                  {intern && (
-                    <button
-                      onClick={() => openApplyModal(item)}
-                      className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-                    >
-                      Apply
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleMessage(item)}
-                    className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-                  >
-                    Message
-                  </button>
-                </div>
-              </article>
-            );
-          })
+          feed.map((item) => (
+            <FeedItem
+              key={item._id}
+              item={item}
+              user={user}
+              tokenUserId={tokenUserId}
+              isInternship={isInternship}
+              posterName={posterName}
+              getFirstImageUrl={getFirstImageUrl}
+              onApply={openApplyModal}
+              onMessage={handleMessage}
+              onPopularity={handlePopularity}
+            
+            />
+          ))
         )}
       </div>
 
-      {/* Apply Modal */}
       {showModal && selectedGig && (
         <ApplyModal
-          gigId={selectedGig._id ?? selectedGig.id}
-          title={selectedGig.title ?? selectedGig.name ?? "Internship"}
+          gigId={selectedGig._id}
+          title={selectedGig.title}
           onClose={closeApplyModal}
           onApplied={async () => {
             toast.success("Applied successfully!");
-            setShowModal(false);
-            setSelectedGig(null);
+            closeApplyModal();
             await loadAll();
           }}
         />

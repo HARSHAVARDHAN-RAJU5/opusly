@@ -91,13 +91,19 @@ router.post("/login", async (req, res) => {
 // GET /api/auth/me - return current logged-in user or null (200) if user doc missing
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const userId = req.userId || req.user?._id || req.user?.id;
+    const userId = req.userId;
     if (!userId) return res.status(200).json({ user: null });
 
-    const user = await User.findById(userId).select("-password -__v").lean();
-    if (!user) {
-      console.warn(`GET /api/auth/me - token valid but user ${userId} not found in DB`);
-      return res.status(200).json({ user: null });
+    // make sure popularityScore is included
+    const user = await User.findById(userId)
+      .select("-password -__v")
+      .lean();
+
+    if (!user) return res.status(200).json({ user: null });
+
+    // Important fix:
+    if (user.popularityScore === undefined || user.popularityScore === null) {
+      user.popularityScore = 0;
     }
 
     return res.json({ user });
@@ -106,6 +112,8 @@ router.get("/me", authMiddleware, async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+
 
 // PUT /api/auth/me — update profile info
 router.put("/me", authMiddleware, async (req, res) => {
