@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     visibility: { type: String, enum: ['public', 'private'], default: 'public' },
 
     // IMPORTANT
-    popularityScore: { type: Number, default: 0 },
+    popularity: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

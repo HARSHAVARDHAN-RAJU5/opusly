@@ -156,15 +156,26 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
       toast.error("Unable to open message.");
     }
   };
+  
+const handlePopularity = async (item) => {
+  console.log("ITEM:", item);
 
-  const handlePopularity = async (item) => {
-    try {
-      const res = await API.get(`/gigs/popularity/${item._id}`);
-      toast.success(`Popularity updated: ${res.data.score}`);
-    } catch (err) {
-      toast.error("Failed to update popularity.");
+  try {
+    const userId = item.createdBy?._id;
+
+    if (!userId) {
+      toast.error("Creator not found for this item.");
+      return;
     }
-  };
+
+    const res = await API.get(`/popularity/${userId}`);
+    toast.success(`Popularity updated: ${res.data.popularity}`);
+  } catch (err) {
+    console.error("Popularity update error:", err);
+    toast.error("Failed to update popularity.");
+  }
+};
+
 
   const posterName = (item) => {
     const p =

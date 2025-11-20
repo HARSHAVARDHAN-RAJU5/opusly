@@ -64,6 +64,8 @@ safeUse("/api/posts", postRoutes);
 safeUse("/api/skillcard", skillCardRoutes);
 safeUse("/api/gigs", gigRoutes);
 safeUse("/api/messages", messageRoutes);
+safeUse("/api/popularity", require("./routes/popularityRoutes"));
+
 
 app.use((req, res, next) => {
   console.log(`404 Not Found: ${req.originalUrl}`);
