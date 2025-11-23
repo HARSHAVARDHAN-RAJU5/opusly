@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth font + layout */
 html, body {
   font-family: "Inter", sans-serif;
   background-color: #f9fafb;
@@ -10,7 +9,6 @@ html, body {
   scroll-behavior: smooth;
 }
 
-/* Pretty scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -31,7 +29,6 @@ html, body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
-/* Button glow */
 .btn-primary {
   @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg shadow;
   transition: 0.2s;
@@ -40,7 +37,6 @@ html, body {
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
 }
 
-/* Inputs clean */
 input, textarea, select {
   @apply border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400;
 }
