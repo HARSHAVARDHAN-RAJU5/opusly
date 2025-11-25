@@ -3,13 +3,11 @@ const Gig = require("../models/Gig");
 const SkillCard = require("../models/SkillCard");
 const User = require("../models/User");
 
-async function popularity(req, res) {
+async function calculatePopularity(userId) {
   try {
-    const userId = req.params.id;
-
     const posts = await Post.find({ author: userId });
-    const gigs = await Gig.find({ provider: userId });
-    const skills = await SkillCard.find({ owner: userId });
+    const gigs = await Gig.find({ createdBy: userId });
+    const skillcards = await SkillCard.find({ user: userId });
 
     let score = 0;
 
@@ -21,7 +19,10 @@ async function popularity(req, res) {
       score += g.applicants?.length || 0;
     });
 
-    score += skills.length;
+    score += skillcards.reduce(
+      (sum, sc) => sum + (sc.endorsedBy?.length || 0),
+      0
+    );
 
     await User.findByIdAndUpdate(
       userId,
@@ -29,14 +30,32 @@ async function popularity(req, res) {
       { new: true }
     );
 
+    return score;
+  } catch (err) {
+    console.error("Popularity Error:", err);
+    return 0;
+  }
+}
+
+async function getPopularity(req, res) {
+  try {
+    const userId = req.params.id;
+    const score = await calculatePopularity(userId);
+
     return res.json({
       success: true,
       popularity: score,
     });
   } catch (err) {
-    console.error("Popularity Error:", err);
-    return res.status(500).json({ success: false, message: err.message });
+    console.error("getPopularity Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 }
 
-module.exports = { popularity };
+module.exports = {
+  calculatePopularity,
+  getPopularity,
+};

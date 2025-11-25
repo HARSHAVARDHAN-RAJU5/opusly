@@ -8,6 +8,7 @@ import FeedItem from "../components/FeedItem";
 
 export default function Dashboard({ onOpenChat, user: passedUser }) {
   const navigate = useNavigate();
+
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem("user");
@@ -31,6 +32,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
 
   const getFirstImageUrl = (post) => {
     if (!post) return null;
+
     const img =
       post.image ||
       (Array.isArray(post.images) && post.images[0]) ||
@@ -51,6 +53,7 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     setLoading(true);
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [resPosts, resGigs] = await Promise.all([
         API.get("/posts", { headers }),
         API.get("/gigs", { headers }),
@@ -156,26 +159,40 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
       toast.error("Unable to open message.");
     }
   };
-  
-const handlePopularity = async (item) => {
-  console.log("ITEM:", item);
 
-  try {
-    const userId = item.createdBy?._id;
+  const handlePopularity = async (item) => {
+    try {
+      if (item._type === "post") {
+        const res = await API.post(
+          `/posts/${item._id}/like`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-    if (!userId) {
-      toast.error("Creator not found for this item.");
-      return;
+        toast.success("Post liked! Popularity increased.");
+        await loadAll();
+        return;
+      }
+
+      if (item._type === "gig" || item._type === "internship") {
+        const userId = item.createdBy?._id;
+        if (!userId) {
+          toast.error("Creator not found.");
+          return;
+        }
+
+        const res = await API.get(`/gigs/popularity/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        toast.success(`Popularity updated: ${res.data.popularity}`);
+        return;
+      }
+    } catch (err) {
+      console.error("Popularity update error:", err);
+      toast.error(err.response?.data?.message || "Failed to update popularity.");
     }
-
-    const res = await API.get(`/popularity/${userId}`);
-    toast.success(`Popularity updated: ${res.data.popularity}`);
-  } catch (err) {
-    console.error("Popularity update error:", err);
-    toast.error("Failed to update popularity.");
-  }
-};
-
+  };
 
   const posterName = (item) => {
     const p =
@@ -217,7 +234,6 @@ const handlePopularity = async (item) => {
               onApply={openApplyModal}
               onMessage={handleMessage}
               onPopularity={handlePopularity}
-            
             />
           ))
         )}

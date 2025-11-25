@@ -9,15 +9,12 @@ export default function FeedItem({
   posterName,
   onApply,
   onMessage,
-  onPopularity, // NEW — handler passed from dashboard
+  onPopularity,
 }) {
   const idKey = item._id ?? item.id;
   const intern = isInternship(item);
   const imageUrl = getFirstImageUrl(item);
 
-  // ---------------------
-  //   POST RENDER
-  // ---------------------
   if ((item._type ?? "").toLowerCase() === "post") {
     return (
       <article
@@ -41,19 +38,31 @@ export default function FeedItem({
             className="mt-3 w-full max-h-80 object-cover rounded-lg border"
           />
         )}
+
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => onMessage(item)}
+            className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
+          >
+            Message
+          </button>
+
+          <button
+            onClick={() => onPopularity(item)}
+            className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+          >
+            Popularity
+          </button>
+        </div>
       </article>
     );
   }
 
-  // ---------------------
-  //  GIG / INTERNSHIP RENDER
-  // ---------------------
   return (
     <article
       key={idKey}
       className="bg-white rounded-lg shadow p-4 hover:shadow-md transition"
     >
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-indigo-700">
@@ -73,12 +82,10 @@ export default function FeedItem({
         </span>
       </div>
 
-      {/* Description */}
       <p className="text-sm text-gray-600 mt-2">
         {item.content ?? item.description}
       </p>
 
-      {/* Skills */}
       {Array.isArray(item.skills) && item.skills.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-3">
           {item.skills.map((s, i) => (
@@ -92,7 +99,6 @@ export default function FeedItem({
         </div>
       )}
 
-      {/* Buttons */}
       <div className="mt-3 flex gap-2">
         {intern && (
           <button
@@ -110,7 +116,6 @@ export default function FeedItem({
           Message
         </button>
 
-        {/* Only GIGS get Popularity button */}
         {!intern && (
           <button
             onClick={() => onPopularity(item)}

@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { popularity } = require('../utils/popularity');
+const { getPopularity } = require("../utils/popularity");
 
-router.get('/:id', popularity);
+router.get("/:id", getPopularity);
 
 module.exports = router;

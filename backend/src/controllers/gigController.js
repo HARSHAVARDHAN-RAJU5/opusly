@@ -202,7 +202,7 @@ const applyToGig = async (req, res) => {
 
     if (gig.createdBy) {
       await User.findByIdAndUpdate(gig.createdBy, {
-        $inc: { popularityScore: 1 },
+        $inc: { popularity: 1 },
       });
     }
 

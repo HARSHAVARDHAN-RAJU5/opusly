@@ -57,8 +57,9 @@ userSchema.methods.toJSON = function () {
   delete obj.password;
   delete obj.__v;
 
-  obj.popularity = obj.popularityScore ?? 0;
-
+  obj.popularity =
+    typeof obj.popularity === "number" ? obj.popularity : 0;
+    
   return obj;
 };
 
