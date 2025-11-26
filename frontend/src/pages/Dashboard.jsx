@@ -70,10 +70,9 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
         })),
         ...gigs.map((g) => ({
           ...g,
-          _type:
-            (g.gigType ?? g.type ?? "").toLowerCase().includes("intern")
-              ? "internship"
-              : "gig",
+          _type: (g.gigType ?? g.type ?? "").toLowerCase().includes("intern")
+            ? "internship"
+            : "gig",
           createdAt: g.createdAt ?? Date.now(),
         })),
       ].sort(
@@ -160,39 +159,43 @@ export default function Dashboard({ onOpenChat, user: passedUser }) {
     }
   };
 
-  const handlePopularity = async (item) => {
-    try {
-      if (item._type === "post") {
-        const res = await API.post(
-          `/posts/${item._id}/like`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+const handlePopularity = async (item) => {
+  try {
 
-        toast.success("Post liked! Popularity increased.");
-        await loadAll();
-        return;
-      }
+    if (item._type === "post") {
+      await API.post(
+        `/posts/${item._id}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      if (item._type === "gig" || item._type === "internship") {
-        const userId = item.createdBy?._id;
-        if (!userId) {
-          toast.error("Creator not found.");
-          return;
-        }
-
-        const res = await API.get(`/gigs/popularity/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        toast.success(`Popularity updated: ${res.data.popularity}`);
-        return;
-      }
-    } catch (err) {
-      console.error("Popularity update error:", err);
-      toast.error(err.response?.data?.message || "Failed to update popularity.");
+      toast.success("Post liked!");
+      await loadAll();
+      return;
     }
-  };
+
+    if (item._type === "gig") {
+      const userId = item.createdBy?._id;
+      if (!userId) {
+        toast.error("Creator not found");
+        return;
+      }
+
+      const res = await API.get(`/popularity/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast.success(`Popularity updated: ${res.data.popularity}`);
+      return;
+    }
+
+    // INTERNSHIPS — ignore
+    if (item._type === "internship") return;
+  } catch (err) {
+    console.error("Popularity update error:", err);
+    toast.error(err.response?.data?.message || "Popularity error");
+  }
+};
 
   const posterName = (item) => {
     const p =

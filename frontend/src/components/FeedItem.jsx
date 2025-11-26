@@ -15,6 +15,7 @@ export default function FeedItem({
   const intern = isInternship(item);
   const imageUrl = getFirstImageUrl(item);
 
+  // ---------- POST ----------
   if ((item._type ?? "").toLowerCase() === "post") {
     return (
       <article
@@ -51,13 +52,14 @@ export default function FeedItem({
             onClick={() => onPopularity(item)}
             className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
           >
-            Popularity
+            Like
           </button>
         </div>
       </article>
     );
   }
 
+  // ---------- GIG / INTERNSHIP ----------
   return (
     <article
       key={idKey}
@@ -100,6 +102,7 @@ export default function FeedItem({
       )}
 
       <div className="mt-3 flex gap-2">
+        {/* Apply only for internships */}
         {intern && (
           <button
             onClick={() => onApply(item)}
@@ -116,6 +119,7 @@ export default function FeedItem({
           Message
         </button>
 
+        {/* Popularity ONLY for gigs (NOT internship) */}
         {!intern && (
           <button
             onClick={() => onPopularity(item)}

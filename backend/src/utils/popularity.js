@@ -26,36 +26,23 @@ async function calculatePopularity(userId) {
 
     await User.findByIdAndUpdate(
       userId,
-      { $set: { popularity: score } },
+      { popularity: score },
       { new: true }
     );
 
     return score;
   } catch (err) {
-    console.error("Popularity Error:", err);
     return 0;
   }
 }
 
 async function getPopularity(req, res) {
   try {
-    const userId = req.params.id;
-    const score = await calculatePopularity(userId);
-
-    return res.json({
-      success: true,
-      popularity: score,
-    });
+    const score = await calculatePopularity(req.params.id);
+    res.json({ success: true, popularity: score });
   } catch (err) {
-    console.error("getPopularity Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false });
   }
 }
 
-module.exports = {
-  calculatePopularity,
-  getPopularity,
-};
+module.exports = getPopularity;

@@ -5,6 +5,7 @@ const User = require("../models/User");
 const mongoose = require("mongoose");
 const { calculatePopularity } = require("../utils/popularity");
 
+// CREATE POST
 exports.createPost = async (req, res) => {
   try {
     const { title = "", content = "", tags } = req.body;
@@ -32,7 +33,6 @@ exports.createPost = async (req, res) => {
       images,
     });
 
-    // update popularity
     if (post && post.author) {
       calculatePopularity(post.author).catch(() => {});
     }
@@ -44,6 +44,7 @@ exports.createPost = async (req, res) => {
   }
 };
 
+// GET ALL POSTS
 exports.getPosts = async (req, res, next) => {
   try {
     let posts = await Post.find()
@@ -54,14 +55,12 @@ exports.getPosts = async (req, res, next) => {
     const host = `${req.protocol}://${req.get("host")}`;
 
     const fixed = posts.map((p) => {
-      // fix missing author
       if (!p.author || !p.author.name) {
         p.author = { _id: p.author?._id || null, name: "Unknown" };
       }
 
       p.postedBy = p.author.name || "Unknown";
 
-      // fix image URLs
       if (Array.isArray(p.images)) {
         p.images = p.images.map((img) => {
           if (!img) return img;
@@ -82,6 +81,7 @@ exports.getPosts = async (req, res, next) => {
   }
 };
 
+// UPDATE POST
 exports.updatePost = async (req, res) => {
   try {
     const post = await Post.findOneAndUpdate(
@@ -89,6 +89,7 @@ exports.updatePost = async (req, res) => {
       req.body,
       { new: true }
     );
+
     if (!post)
       return res
         .status(404)
@@ -100,12 +101,14 @@ exports.updatePost = async (req, res) => {
   }
 };
 
+// DELETE POST
 exports.deletePost = async (req, res) => {
   try {
     const post = await Post.findOneAndDelete({
       _id: req.params.id,
       author: req.user.id,
     });
+
     if (!post)
       return res
         .status(404)
@@ -117,64 +120,76 @@ exports.deletePost = async (req, res) => {
   }
 };
 
+// LIKE / UNLIKE (TOGGLE)
 exports.likePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    console.log("LIKE POST HIT → params:", req.params);
+
+    const postId = req.params.id;
     const userId = req.user.id;
 
-    if (!post)
-      return res.status(404).json({ message: "Post not found" });
+    console.log("postId:", postId);
+    console.log("userId:", userId);
+
+    const post = await Post.findById(postId);
+    console.log("post found:", post ? true : false);
+
+    if (!post) {
+      console.log("ERROR: Post not found");
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
 
     if (!Array.isArray(post.likes)) post.likes = [];
 
-    if (post.likes.includes(userId)) {
-      return res.status(400).json({ message: "Already liked" });
+    const alreadyLiked = post.likes.includes(userId);
+    console.log("alreadyLiked:", alreadyLiked);
+
+    if (alreadyLiked) {
+      post.likes = post.likes.filter((id) => id.toString() !== userId);
+    } else {
+      post.likes.push(userId);
     }
 
-    // prevent liking own post
-    if (post.author.toString() === userId) {
-      return res
-        .status(400)
-        .json({ message: "You cannot like your own post" });
-    }
-
-    post.likes.push(userId);
     await post.save();
+    console.log("Post saved successfully");
 
-    // update popularity of the post author
     await calculatePopularity(post.author);
+    console.log("Popularity updated");
 
     return res.json({
-      message: "Post liked",
+      success: true,
+      liked: !alreadyLiked,
       likes: post.likes.length,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    console.error("LIKE POST ERROR:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
+
+// UNLIKE (not required anymore)
 exports.unlikePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const postId = req.params.id;
     const userId = req.user.id;
 
-    if (!post)
-      return res.status(404).json({ message: "Post not found" });
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
 
-    post.likes = post.likes.filter(
-      (u) => u.toString() !== userId
-    );
+    post.likes = post.likes.filter((id) => id.toString() !== userId);
 
     await post.save();
-
-    // update popularity
     await calculatePopularity(post.author);
 
     return res.json({
-      message: "Post unliked",
+      success: true,
       likes: post.likes.length,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    console.error("UNLIKE ERROR:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };

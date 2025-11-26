@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getPopularity } = require("../utils/popularity");
+const getPopularity = require("../utils/popularity");
 
 router.get("/:id", getPopularity);
 
